@@ -251,7 +251,12 @@ export async function listMemes(dir = libraryDir()) {
   const memes = join(dir, 'memes');
   if (!isDir(memes)) return null;
   const folders = readdirSync(memes).filter((name) => !name.startsWith('.') && isDir(join(memes, name))).sort();
-  const sig = [memes, ...folders.map((f) => join(memes, f))].map((p) => `${p}:${statSync(p).mtimeMs}`).join('|');
+  // A sidecar may be edited in place without changing its folder's time: docHash must see its current contents.
+  const sidecars = folders.flatMap((f) => readdirSync(join(memes, f)).filter((n) => n.endsWith('.json')).sort().map((n) => join(memes, f, n)));
+  const sig = [memes, ...folders.map((f) => join(memes, f)), ...sidecars].map((p) => {
+    const info = statSync(p);
+    return `${p}:${info.size}:${info.mtimeMs}:${info.ctimeMs}`;
+  }).join('|');
   const was = keptMemes.get(memes);
   if (was && was.sig === sig) return was.items;
   /** @type {MemeItem[]} */
