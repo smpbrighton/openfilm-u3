@@ -37,7 +37,7 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 - 자막 레이어 하나는 템플릿 페이지 하나이고, 클립별 값은 component props 다 — [0006](decisions/0006-subtitle-clip-template.md)
 - `.vtt` 가져오기는 `openfilm get subtitles` 로컬 verb 다 — [0007](decisions/0007-get-subtitles-local-verb.md)
 - u3 skill 은 `skills.mjs` 의 네 번째 소스 `u3` 로 등록한다 — [0008](decisions/0008-u3-skill-source.md)
-- 자막 클립이 있는 film 에서는 Studio 자막을 끈다 — [0009](decisions/0009-studio-subtitles-off-with-clips.md)
+- u3 자막 클립이 있는 film 에서는 Studio 자막 cue 를 내지 않는다 — [0010](decisions/0010-no-studio-cues-with-subtitle-clips.md)
 
 ## 열린 질문
 항목마다 추천과 이유를 적는다.

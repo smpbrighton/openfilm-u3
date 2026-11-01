@@ -1,6 +1,6 @@
 # 0009 자막 클립이 있는 film 에서는 Studio 자막을 끈다
 
-Status: accepted
+Status: superseded-by 0010
 Source: changes/003-u3-subtitle-clips/spec.md
 
 ## 맥락
