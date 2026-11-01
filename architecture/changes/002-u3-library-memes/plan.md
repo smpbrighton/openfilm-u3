@@ -71,3 +71,14 @@ INTENT 기대 결과 2번: `openfilm get meme` 이 프롬프트에 맞는 짤을
 
 ## 롤백
 병합 커밋 revert. Release asset 은 `gh release delete library-memes-1` 로 지운다(파괴적이므로 그때 확인을 받는다). 프로젝트로 복사된 짤은 일반 assets 파일로 남는다.
+
+## 구현에서 달라진 것
+- Release: `library-memes-1`(prerelease)의 asset `u3-library-memes-1.tar`, 213,475,840 bytes, sha256 `65aa3f9dc4f8c1378c71ac5e02426b48a2036cf494b9d37abd8c21e56c872a2f`. tar 는 `memes/` 경로로 이름순 ustar 다(uid·gid 0, mac metadata 없음).
+- `fetch-library.mjs` 는 받은 tar 의 sha256 을 `memes/.fetched` 에 적는다. 다시 실행하면 이 파일의 태그·파일명·해시를 비교해 건너뛴다. `--into <dir>` 로 다른 폴더에 받는다. 풀기는 임시 폴더에서 끝낸 뒤 `memes/` 를 바꾼다. gitignore 에 `u3/library/.fetch-*/` 도 더했다.
+- 라우트 확장(순서 4)은 순서 2 커밋에 들어갔다. `file?id=` 는 `kind=meme` 일 때 짤을 내고, 없으면 효과음이다. place 본문은 `{id, kind}` 다.
+- `--reaction` 의 선택지는 한국어 감정 14개다. u3 점수가 사이드카의 `emotion` 과 비교하기 때문이다. 목록은 `u3-library.mjs` 의 `MEME_EMOTIONS` 하나이고, `get.mjs` 가 그것을 import 한다(import 1줄).
+- `ModelsSection.tsx` 는 고치지 않았다. `lib/providers.ts` 의 `USE_VERBS` 를 읽는다.
+- 패널 짤 탭의 검색은 효과음 탭과 같이 브라우저에서 거른다(설명·상황·감정·id 부분 일치). 라우트의 `q` 는 `matchMemes` 점수가 0 보다 큰 것만 낸다.
+- `u3MemeBox` 는 60% 폭의 높이가 무대보다 크면 무대 높이에 맞춰 폭을 줄인다. 16:9 무대에 세로 짤을 놓을 때 화면 밖으로 나가지 않게 하기 위해서다.
+- 이미 u3 Library 를 연결한 설정에는 `use.meme` 이 비어 있다. 연결할 때만 빈 종류를 채우기 때문이다. Models 에서 고르거나 `--via u3-library` 로 부른다.
+- 패널에서 끈 짤 클립에는 소리 끄기를 쓰지 않았다. verb help 가 에이전트에게 소리 없이 놓으라고 말한다.
