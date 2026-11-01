@@ -7,6 +7,8 @@ import { runInNewContext } from 'node:vm';
 import { filmHtml, readFilmFile } from '../../src/film-doc.mjs';
 import { importSubtitles } from './u3-subtitles.mjs';
 import { pagesDir } from './u3-library.mjs';
+import { filmCaptions } from './captions.mjs';
+import { catalog, runGet } from './get.mjs';
 
 const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:03.000\n<v Sumin>첫 <00:00:01.400>줄 *그대로* &amp; \\*별표\\*</v>\n\n00:00:02.500 --> 00:00:04.000\n둘째 줄\n';
 async function project(t) {
@@ -24,8 +26,8 @@ test('one clip per cue: local times, overlap trim, literal stars, props, fonts a
   assert.deepEqual(first, { layer: 'layer1', page: 'scenes/u3-subtitle-layer1.html', clips: ['u3sub-layer1-1', 'u3sub-layer1-2'], count: 2 });
   const value = await film(root);
   assert.equal(value.tracks.length, 2);
-  assert.equal(value.tracks[0].clips[0].id, 'footage');
-  const [a, b] = value.tracks[1].clips;
+  assert.equal(value.tracks[1].clips[0].id, 'footage');
+  const [a, b] = value.tracks[0].clips;
   assert.deepEqual([a.at, a.time, b.at, b.time], [1, [0, 1.5], 2.5, [0, 1.5]]);
   assert.equal(a.overrides[0].text, '첫 줄 \\*그대로\\* & \\*별표\\*');
   assert.equal(a.overrides[1].text, '');
@@ -44,7 +46,8 @@ test('one clip per cue: local times, overlap trim, literal stars, props, fonts a
   assert.equal(changed.tracks.length, 3);
   assert.equal(changed.tracks[1].clips.length, 1);
   assert.equal(changed.tracks[1].clips[0].overrides[0].text, '새 글');
-  assert.equal(changed.tracks[2].clips.length, 2, 'another layer stays on its track');
+  assert.equal(changed.tracks[0].clips.length, 2, 'another layer stays on its track');
+  assert.equal(changed.tracks[2].clips[0].id, 'footage', 'subtitle tracks are above footage');
   assert.equal(await readFile(join(root, first.page), 'utf8'), '<!-- layer style edited by the person -->');
   assert.equal(await readFile(join(root, 'scenes/fonts/Pretendard-Regular.otf'), 'utf8'), 'custom font');
 });
@@ -71,4 +74,26 @@ test('template emphasis follows u3: nonempty pairs, escaped stars, unmatched sta
   assert.deepEqual(plain('** 혼자*'), [{ text: '*', highlight: false }, { text: ' 혼자', highlight: true }]);
   assert.deepEqual(plain('끝*'), [{ text: '끝*', highlight: false }]);
   assert.deepEqual(plain('<img src=x>'), [{ text: '<img src=x>', highlight: false }]);
+});
+
+test('get subtitles is offered without a provider and dispatches locally', async t => {
+  const root = await project(t);
+  assert.equal((await catalog('subtitles')).note, null);
+  assert.ok((await catalog()).verbs.some(v => v.verb === 'subtitles'));
+  const result = JSON.parse(await runGet(root, 'subtitles', { src: 'input.vtt', layer: 'main' }, { via: 'no-provider' }));
+  assert.equal(result.count, 2);
+  assert.equal(result.layer, 'main');
+  await assert.rejects(runGet(root, 'subtitles', {}), /--src/);
+});
+
+test('u3 clips suppress every Studio cue without changing transcripts or subtitle settings', async t => {
+  const root = await project(t);
+  const settings = '{"on":true,"font":"custom"}';
+  await writeFile(join(root, 'subtitles.json'), settings);
+  await writeFile(join(root, 'footage.vtt'), vtt);
+  assert.ok((await filmCaptions(root, { duration: async () => 10 })).cues.length > 0);
+  await importSubtitles(root, { src: 'input.vtt' });
+  assert.deepEqual(await filmCaptions(root), { cues: [], sourceLanguage: null, languages: [], untranscribed: [] });
+  assert.equal(await readFile(join(root, 'subtitles.json'), 'utf8'), settings);
+  assert.equal(await readFile(join(root, 'footage.vtt'), 'utf8'), vtt);
 });

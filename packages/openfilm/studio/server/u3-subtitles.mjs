@@ -62,7 +62,7 @@ export async function importSubtitles(root, { src, layer = 'layer1' }) {
   await changeProjectFilm(root, (value, current) => {
     if (!current.value) throw new EditError(current.problems.join('\n'), 'invalid');
     const existing = value.tracks.findIndex(track => track.clips.some(sameLayer));
-    const track = existing < 0 ? value.tracks.length : existing;
+    const track = existing < 0 ? 0 : existing;
     const remove = value.tracks.flatMap(tr => tr.clips.filter(sameLayer).map(clip => ({ op: /** @type {const} */ ('remove'), clip: clip.id })));
     /** @type {import('./ops.mjs').Op[]} */
     const insert = clips.map((clip, i) => ({ op: 'insert', clip, track: existing < 0 && i === 0 ? { insert: track } : track }));

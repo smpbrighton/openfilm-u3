@@ -225,6 +225,7 @@ export async function filmCaptions(root, options = {}) {
   const empty = { cues: /** @type {FilmSubtitleCue[]} */ ([]), sourceLanguage: null, languages: /** @type {string[]} */ ([]), untranscribed: /** @type {string[]} */ ([]) };
   const doc = /** @type {import('../../src/film-doc.d.mts').FilmDoc | null} */ (film.doc);
   if (!doc) return empty;
+  if (doc.tracks.some(track => track.clips.some(clip => clip.id.startsWith('u3sub-')))) return empty;
   const duration = options.duration ?? ((/** @type {string} */ src) => probe(root, src).then((p) => p.duration, () => undefined));
   /** @type {Map<string, { lines: SpokenLine[], speaker?: string, alt: AltLines, cut?: boolean } | null>} */
   const known = new Map();

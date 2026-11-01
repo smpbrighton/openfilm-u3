@@ -38,6 +38,7 @@ import { kindOf, modelFor, providerKey } from './keys.mjs';
 import { chooseProvider, listProviders, providerSettings } from './providers/index.mjs';
 import { CALL_TIMEOUT_SEC, callService, servicesHelp } from './custom-services.mjs';
 import { MEME_EMOTIONS } from './u3-library.mjs';
+import { importSubtitles } from './u3-subtitles.mjs';
 
 /**
  * @typedef {import('./http.mjs').Req} Req @typedef {import('./http.mjs').Res} Res
@@ -61,6 +62,11 @@ const prompt = /** @type {Option} */ ({ value: 'text', required: true });
 
 /** The verbs, their options and where their files go. A provider takes the options it can honor and says so for the rest. */
 export const VERBS = /** @type {Record<string, VerbSpec>} */ ({
+  subtitles: {
+    help: 'Import a local WebVTT as subtitle page clips, one cue per clip. Replaces the imported clips on the same layer; preserves its page style. No provider needed.',
+    timeoutSec: 60,
+    options: { src: { value: 'vtt', required: true }, layer: { value: 'name' } },
+  },
   voice: {
     help: 'Find voices for tts: voiceId, name, language, gender and description.',
     timeoutSec: 60,
@@ -279,6 +285,7 @@ async function projectFile(root, rel, name, want) {
  */
 export async function runGet(root, verb, given, { via, model, yes = false, ask, tell, signal = new AbortController().signal } = {}) {
   const args = await checkArgs(root, verb, given);
+  if (verb === 'subtitles') return show(await importSubtitles(root, /** @type {{ src: string, layer?: string }} */ (args)));
   if (verb === 'call') {
     const { custom } = await providerSettings();
     const service = custom.find((s) => s.id === args.service);
@@ -537,15 +544,15 @@ export async function catalog(only, { web = false } = {}) {
   /* the person's own services: `call`, listed with each of them, whenever there is one */
   const own = settings.custom;
   const listed = Object.entries(VERBS).filter(([verb]) => (only === undefined
-    ? (verb === 'call' ? own.length > 0 : (web || !WEB_VERBS.includes(verb)) && offered(verb))
+    ? (verb === 'subtitles' || (verb === 'call' ? own.length > 0 : (web || !WEB_VERBS.includes(verb)) && offered(verb)))
     : verb === only));
   const all = await Promise.all(listed.map(async ([verb, spec]) => ({
     verb, help: verb === 'call' && own.length ? `${spec.help} The person's services: ${servicesHelp(own).join('; ')}` : spec.help,
     ...(spec.dir ? { dir: spec.dir } : {}), options: spec.options,
-    usable: verb === 'call' ? own.length > 0 : Boolean(await chooseProvider(/** @type {Verb} */ (verb), { settings })),
+    usable: verb === 'subtitles' || (verb === 'call' ? own.length > 0 : Boolean(await chooseProvider(/** @type {Verb} */ (verb), { settings }))),
   })));
   const missing = all.filter((v) => !v.usable && v.verb !== 'call').map((v) => v.verb);
-  if (only === undefined && !all.some((v) => v.usable)) return { verbs: [], note: nothing(), services: services() };
+  if (only === undefined && !all.some((v) => v.usable && v.verb !== 'subtitles')) return { verbs: all.filter(v => v.verb === 'subtitles').map(({ usable: _, ...v }) => v), note: nothing(), services: services() };
   const notes = [...(missing.length ? [notConnected(missing)] : []), ...(only === 'call' && !own.length ? [NO_OWN_SERVICES] : [])];
   return {
     verbs: all.filter((v) => only !== undefined || v.usable).map(({ usable: _, ...v }) => v),
