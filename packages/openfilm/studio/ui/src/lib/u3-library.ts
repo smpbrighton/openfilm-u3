@@ -41,6 +41,25 @@ export interface U3Meme {
   id: string; emotion: string; situations: string[]; description: string; durationSec: number | null; width: number | null; height: number | null;
 }
 
+/** The library's fourteen emotions (server MEME_EMOTIONS), including those not on the loaded page. */
+export const U3_MEME_EMOTIONS = ['인정', '분노', '귀찮음', '기대', '소름', '당황', '의심', '부끄러움', '억울', '웃음', '뿌듯함', '체념', '놀람', '감동'].sort();
+
+/** A page of server-ranked memes; `next` is the next offset, or null at the end. */
+export interface U3MemePage { dir: string | null; items: U3Meme[]; total: number; next: number | null }
+
+/** Offset zero replaces the old search. Later pages append once, in server order, only at the expected offset. */
+export function mergeU3MemePage(current: U3MemePage | null, page: U3MemePage, offset: number): U3MemePage | null {
+  if (offset === 0) return { ...page, items: [...page.items] };
+  if (!current || current.next !== offset) return current;
+  const seen = new Set(current.items.map((item) => item.id));
+  const added = page.items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  return { ...page, items: [...current.items, ...added] };
+}
+
 /** The memes' emotions, each once, in name order. */
 export function u3Emotions(items: readonly U3Meme[]): string[] {
   return [...new Set(items.map((i) => i.emotion))].sort();
@@ -92,12 +111,13 @@ export async function listU3Sfx(): Promise<{ dir: string | null; items: U3Sfx[] 
   return { dir: body.dir ?? null, items: Array.isArray(body.items) ? body.items : [] };
 }
 
-/** The memes there are; `dir` null when there are none here. */
-export async function listU3Memes(): Promise<{ dir: string | null; items: U3Meme[] }> {
-  const res = await fetch('/api/u3/library/memes');
-  const body = await res.json().catch(() => ({})) as { dir?: string | null; items?: U3Meme[]; error?: string };
+/** One page of memes, searched and filtered before paging; `dir` null when the library is missing. */
+export async function listU3Memes({ query = '', emotion = '', offset = 0, limit = 24 } = {}, signal?: AbortSignal): Promise<U3MemePage> {
+  const params = new URLSearchParams({ q: query, emotion, offset: String(offset), limit: String(limit) });
+  const res = await fetch(`/api/u3/library/memes?${params}`, { signal });
+  const body = await res.json().catch(() => ({})) as Partial<U3MemePage> & { error?: string };
   if (!res.ok) throw new Error(String(body.error ?? `Studio answered ${res.status}`));
-  return { dir: body.dir ?? null, items: Array.isArray(body.items) ? body.items : [] };
+  return { dir: body.dir ?? null, items: Array.isArray(body.items) ? body.items : [], total: body.total ?? 0, next: body.next ?? null };
 }
 
 /** A sound's address, to listen to. */

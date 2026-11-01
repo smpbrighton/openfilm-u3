@@ -19,7 +19,7 @@ export function ProjectLayoutMenu({ className, assets, layers, timeline, inspect
   onLayers: (open: boolean) => void;
   onTimeline: (open: boolean) => void;
   onInspector: (open: boolean) => void;
-  /** u3's sound effects (components/U3LibraryPanel) */
+  /** u3 라이브러리(효과음·짤) (components/U3LibraryPanel) */
   u3Library?: boolean;
   onU3Library?: (open: boolean) => void;
 }) {

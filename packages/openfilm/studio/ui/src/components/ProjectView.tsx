@@ -720,7 +720,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   const [assetsWidth, setAssetsWidth] = React.useState(280);
   /* the Layers panel (components/LayersPanel), left of the picture, after the assets */
   const [layersPaneOpen, setLayersPaneOpen] = useKeptFlag('openfilm.project.layers', false);
-  const [u3LibraryOpen, setU3LibraryOpen] = useKeptFlag('openfilm.project.u3library', false);
+  const [u3LibraryOpen, setU3LibraryOpen] = useKeptFlag('openfilm.project.u3library', true);
   const [layersWidth, setLayersWidth] = React.useState(240);
   const layersPaneRef = React.useRef<HTMLDivElement | null>(null);
   const [timelineOpen, setTimelineOpen] = useKeptFlag('openfilm.project.timeline');

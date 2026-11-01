@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filterU3Memes, filterU3Sfx, u3Categories, u3DragItem, u3Emotions, u3MemeBox, u3MemeDragItem, type U3Meme, type U3Sfx } from './u3-library.ts';
+import { filterU3Memes, filterU3Sfx, mergeU3MemePage, U3_MEME_EMOTIONS, u3Categories, u3DragItem, u3Emotions, u3MemeBox, u3MemeDragItem, type U3Meme, type U3MemePage, type U3Sfx } from './u3-library.ts';
 
 const ITEMS: U3Sfx[] = [
   { id: 'sfx-1', category: 'shock', title: 'VINE BOOM SOUND', durationSec: 1.2 },
@@ -39,6 +39,33 @@ const MEMES: U3Meme[] = [
   { id: 'tenor-2', emotion: '웃음', situations: ['폭소'], description: 'Cat laughing', durationSec: null, width: 320, height: 320 },
   { id: 'tenor-3', emotion: '당황', situations: [], description: '', durationSec: 1, width: null, height: null },
 ];
+
+test('all fourteen emotions are available before loading any meme page', () => {
+  assert.equal(U3_MEME_EMOTIONS.length, 14);
+  assert.equal(new Set(U3_MEME_EMOTIONS).size, 14);
+  assert.ok(U3_MEME_EMOTIONS.includes('놀람'));
+});
+
+test('meme pages append in server order without duplicates or changing the earlier page', () => {
+  const first: U3MemePage = { dir: '/library', items: [MEMES[1], MEMES[0]], total: 3, next: 2 };
+  const last: U3MemePage = { dir: '/library', items: [MEMES[0], MEMES[2]], total: 3, next: null };
+  const joined = mergeU3MemePage(first, last, 2);
+  assert.deepEqual(joined, { ...last, items: [MEMES[1], MEMES[0], MEMES[2]] });
+  assert.deepEqual(first.items, [MEMES[1], MEMES[0]]);
+  assert.equal(mergeU3MemePage(joined, last, 2), joined, 'a repeated response is not appended');
+  assert.equal(mergeU3MemePage(first, last, 4), first, 'an unexpected page cannot leave a gap');
+  assert.equal(mergeU3MemePage(null, last, 2), null, 'there must be a first page');
+});
+
+test('offset zero resets items, total and next for another query or emotion, even to no results', () => {
+  const previous: U3MemePage = { dir: '/library', items: MEMES, total: 30, next: 3 };
+  const first: U3MemePage = { dir: '/library', items: [MEMES[1]], total: 1, next: null };
+  assert.deepEqual(mergeU3MemePage(previous, first, 0), first);
+  assert.deepEqual(mergeU3MemePage(null, first, 0), first);
+  const empty: U3MemePage = { dir: null, items: [], total: 0, next: null };
+  assert.deepEqual(mergeU3MemePage(previous, empty, 0), empty);
+  assert.deepEqual(previous.items, MEMES);
+});
 
 test('the memes\' emotions, each once, in name order', () => {
   assert.deepEqual(u3Emotions(MEMES), ['당황', '웃음']);
