@@ -53,3 +53,9 @@ INTENT 기대 결과 3·4번: 자막 한 줄이 페이지 클립이고, `.vtt` �
 
 ## 롤백
 병합 커밋 revert. 데이터 형식 변경은 film.html 의 자막 클립뿐이다. 되돌리면 그 클립은 일반 페이지 클립으로 남고, `filmCaptions` 가드가 없어져 Studio 자막이 다시 나온다.
+
+## 구현에서 달라진 것
+- `get.mjs` catalog 의 로컬 verb 예외는 목록 포함·사용 가능 판정·provider 미연결 안내 분기에 적용했다. 기존 미연결 안내를 유지하면서 `subtitles` 를 항상 표시하려면 세 곳을 구분해야 한다.
+- 1단계 render 첫 프레임에서 별표가 보이지 않았다. 강조 방식은 원안의 MutationObserver 를 유지했다.
+- 사용자 지시로 이 worktree 의 구현은 1–8단계까지만 수행한다. 9단계의 Studio 수동 확인·프레임 비교·병합은 사용자가 수행한다. push 도 하지 않는다.
+- 전체 verify 는 데스크톱 `src/agent-skills.test.mjs:103` 에서 실패했다. 기존 예상 skill 목록에 새 `u3-media`·`u3-subtitles` 가 없다. 이 테스트 파일은 plan 범위 밖이므로 고치지 않았다. 대상 테스트 64건·typecheck·architecture lint 는 통과했지만 전체 verify 통과 조건은 충족하지 못했다.
