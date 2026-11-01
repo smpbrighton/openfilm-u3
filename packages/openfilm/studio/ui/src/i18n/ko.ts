@@ -1318,6 +1318,13 @@ export const ko: Words = {
   },
   /* u3's bundled sound effects and memes (components/U3LibraryPanel) */
   u3Library: {
+    modelDesktopOnly: '정확한 검색은 데스크톱 앱에서 사용할 수 있습니다.',
+    modelDownloading: '모델 받는 중 {n}%',
+    modelProgress: '검색 모델 다운로드',
+    modelFailed: '정확한 검색을 실행하지 못했습니다. 규칙 검색을 사용합니다.',
+    modelReady: '정확한 검색 켜짐',
+    modelStarting: '모델 받기 시작 중',
+    modelEnable: '정확한 검색 켜기(2.1GB)',
     layout: 'u3 라이브러리',
     title: 'u3 라이브러리',
     hide: 'u3 라이브러리 숨기기',

@@ -1322,6 +1322,13 @@ export const en = {
   },
   /* u3's bundled sound effects and memes (components/U3LibraryPanel) */
   u3Library: {
+    modelDesktopOnly: 'Precise search works in the desktop app.',
+    modelDownloading: 'Downloading the model {n}%',
+    modelProgress: 'Search model download',
+    modelFailed: 'Precise search could not run. Using rule search.',
+    modelReady: 'Precise search on',
+    modelStarting: 'Starting the download',
+    modelEnable: 'Turn on precise search (2.1 GB)',
     layout: 'u3 Library',
     title: 'u3 Library',
     hide: 'Hide u3 Library',

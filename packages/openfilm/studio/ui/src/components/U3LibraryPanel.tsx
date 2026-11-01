@@ -170,6 +170,7 @@ function MemesTab() {
 
 /** A download stays on the server when this tab closes; returning reads its current progress. */
 function MemeModel({ onReady }: { onReady: () => void }) {
+  const t = useT();
   const [status, setStatus] = React.useState<U3MemeModelStatus | null>(null);
   const [problem, setProblem] = React.useState<string | null>(null);
   const [starting, setStarting] = React.useState(false);
@@ -201,17 +202,17 @@ function MemeModel({ onReady }: { onReady: () => void }) {
   };
   return <div className="shrink-0 px-2.5 pb-2 text-[11px] text-[var(--text-muted)]" data-u3-meme-model="">
     {problem ? <p role="alert">{problem}</p> : null}
-    {status?.available === false ? <p>정확한 검색은 desktop 앱에서 사용할 수 있습니다.</p>
+    {status?.available === false ? <p>{t('u3Library.modelDesktopOnly')}</p>
       : status?.state === 'downloading' ? <div role="status">
-        <p>모델 받는 중 {Math.floor(status.progress * 100)}%</p>
-        <progress className="w-full" value={status.progress} max={1} aria-label="검색 모델 다운로드" />
+        <p>{t('u3Library.modelDownloading').replace('{n}', String(Math.floor(status.progress * 100)))}</p>
+        <progress className="w-full" value={status.progress} max={1} aria-label={t('u3Library.modelProgress')} />
       </div>
-        : status?.state === 'ready' ? <p role="status">{status.embedError ? '정확한 검색을 실행하지 못했습니다. 규칙 검색을 사용합니다.' : '정확한 검색 켜짐'}</p>
+        : status?.state === 'ready' ? <p role="status">{status.embedError ? t('u3Library.modelFailed') : t('u3Library.modelReady')}</p>
           : status ? <>
             {status.error ? <p role="alert">{status.error}</p> : null}
             <button type="button" disabled={starting} onClick={() => { void download(); }}
               className="rounded-md bg-[var(--bg-hover)] px-2 py-1 text-[var(--text)] disabled:opacity-50">
-              {starting ? '모델 받기 시작 중' : '정확한 검색 켜기(2.1GB)'}
+              {starting ? t('u3Library.modelStarting') : t('u3Library.modelEnable')}
             </button>
           </> : null}
   </div>;
