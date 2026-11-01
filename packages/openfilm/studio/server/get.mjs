@@ -37,6 +37,7 @@ import { HttpError, json, readJson } from './http.mjs';
 import { kindOf, modelFor, providerKey } from './keys.mjs';
 import { chooseProvider, listProviders, providerSettings } from './providers/index.mjs';
 import { CALL_TIMEOUT_SEC, callService, servicesHelp } from './custom-services.mjs';
+import { MEME_EMOTIONS } from './u3-library.mjs';
 
 /**
  * @typedef {import('./http.mjs').Req} Req @typedef {import('./http.mjs').Res} Res
@@ -80,6 +81,11 @@ export const VERBS = /** @type {Record<string, VerbSpec>} */ ({
     help: 'Music. Returns src and its measured dur. --sec is a request and the track is often longer: play the part you need with a media fragment on the clip\'s src (#t=in,out).',
     dir: 'assets/audio/music', timeoutSec: 300,
     options: { out, prompt, sec: { value: 'seconds', min: 3, max: 300 } },
+  },
+  meme: {
+    help: 'A reaction meme: a short video clip from u3\'s library, found, not made. --prompt describes the scene it reacts to; --reaction names the feeling. Returns src, dur, its size and the best candidates. A meme the film uses already (film.html, a copy under another name too) is not picked again. Place it on a track above the footage, centered, 60% of the stage width, for 2 seconds or less, muted (no sound); at least one per source video.',
+    dir: 'assets/video/memes', timeoutSec: 120,
+    options: { out, prompt, reaction: { value: 'emotion', choices: Object.values(MEME_EMOTIONS) } },
   },
   asr: {
     help: 'Transcribe a recording in the project. Returns a preview of the text and its transcript: a WebVTT of the whole text in pause-separated cues, each labeled with the pause before it; cut only in pauses of 0.12 s or more. What is transcribed already is not done again (--force redoes a recording; synthesized speech never needs it).',
@@ -153,7 +159,7 @@ const NO_OWN_SERVICES = 'The person has added no services of their own. In Studi
 /** Each kind of media, in words (finding voices is part of voice-over). */
 const WORDS = /** @type {Record<string, string>} */ ({
   tts: 'voice-over', music: 'music', sfx: 'sound effects', asr: 'transcripts', image: 'images', 'image-search': 'image search',
-  video: 'video', translate: 'subtitle translation', 'web-search': 'web search',
+  video: 'video', translate: 'subtitle translation', 'web-search': 'web search', meme: 'memes',
 });
 /** The media services `get` can use, by name (none comes first), what each makes, and where the person connects them. */
 export const services = () => `Media services, each used with the person's own key: ${listProviders()

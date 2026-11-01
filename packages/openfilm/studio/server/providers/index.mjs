@@ -40,7 +40,7 @@ import u3Library from './u3-library.mjs';
 const OWN = [elevenlabs, openai, google, fal, pexels, pixabay, brave, tavily, groq, azure, doubao, mimo, keenable, u3Library];
 
 /** The kinds of media the person chooses a provider and model for (Settings → Services). */
-const USE_VERBS = /** @type {Verb[]} */ (['tts', 'music', 'sfx', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search']);
+const USE_VERBS = /** @type {Verb[]} */ (['tts', 'music', 'sfx', 'meme', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search']);
 
 export const listProviders = () => OWN;
 

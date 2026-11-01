@@ -9,6 +9,7 @@
  *   voice         list voices                  --language --gender --prompt --limit
  *   tts           voice-over                   --out --text --voice
  *   sfx           sound effect                 --out --prompt --sec
+ *   meme          reaction meme (a library's)  --out --prompt --reaction
  *   music         music                        --out --prompt --sec
  *   asr           transcribe a project file    --src --force
  *   image-search  find pictures on the web     --out --prompt --n
@@ -23,7 +24,7 @@
  */
 
 /**
- * @typedef {'voice' | 'tts' | 'sfx' | 'music' | 'asr' | 'image-search' | 'image' | 'video' | 'translate' | 'web-search' | 'web-fetch'} Verb
+ * @typedef {'voice' | 'tts' | 'sfx' | 'meme' | 'music' | 'asr' | 'image-search' | 'image' | 'video' | 'translate' | 'web-search' | 'web-fetch'} Verb
  */
 
 /**
