@@ -9,8 +9,8 @@
  * `src/core/meme-match.ts`); equal scores have one order, so one prompt always picks one file.
  *
  *   GET  u3/library/sfx?q=&category=            → { dir: string | null, items: [{ id, category, title, durationSec }] }
- *   GET  u3/library/memes?q=&emotion=           → { dir: string | null, items: [{ id, emotion, situations, description,
- *                                                   durationSec, width, height }] }
+ *   GET  u3/library/memes?q=&emotion=&offset=&limit= → { dir: string | null, items: [{ id, emotion, situations,
+ *                                                        description, durationSec, width, height }], total, next }
  *   GET  u3/library/file?id=&kind=sfx|meme      → the sound (audio/mpeg) or the meme (video/mp4); sfx without kind
  *   POST projects/:id/u3/library/place { id, kind? } → { path }: copied into assets/audio/sfx/ or assets/video/memes/
  *                                                 (once: the same file there already, of the same size, is that one)
@@ -411,13 +411,17 @@ export async function u3Route(req, res, parts, query) {
     return json(res, 200, { dir, items: found.map(shown) });
   }
   if (parts[0] === 'library' && parts[1] === 'memes' && parts.length === 2 && req.method === 'GET') {
+    const offset = pageNumber(query, 'offset', 0, 0, Number.MAX_SAFE_INTEGER);
+    const limit = pageNumber(query, 'limit', 24, 1, 100);
     const items = await listMemes(dir);
-    if (!items) return json(res, 200, { dir: null, items: [] });
+    if (!items) return json(res, 200, { dir: null, items: [], total: 0, next: null });
     const emotion = query.get('emotion') ?? '';
     const q = (query.get('q') ?? '').trim();
     const of = emotion ? items.filter((i) => i.emotion === emotion) : items;
     const found = q ? matchMemes({ query: q }, of, of.length).filter((r) => r.score > 0).map((r) => r.meme) : of;
-    return json(res, 200, { dir, items: found.map(shownMeme) });
+    const page = found.slice(offset, offset + limit);
+    const next = offset + page.length < found.length ? offset + page.length : null;
+    return json(res, 200, { dir, items: page.map(shownMeme), total: found.length, next });
   }
   if (parts[0] === 'library' && parts[1] === 'file' && parts.length === 2 && req.method === 'GET') {
     const meme = kindAsked(query.get('kind')) === 'meme';
@@ -428,6 +432,19 @@ export async function u3Route(req, res, parts, query) {
     return undefined;
   }
   throw new HttpError(404, 'no such API');
+}
+
+/** A page parameter is a whole decimal number within its bounds; a missing one uses the default.
+ * @param {URLSearchParams} query @param {string} name @param {number} fallback @param {number} min @param {number} max
+ */
+function pageNumber(query, name, fallback, min, max) {
+  const raw = query.get(name);
+  if (raw === null) return fallback;
+  const value = Number(raw);
+  if (!/^\d+$/.test(raw) || !Number.isSafeInteger(value) || value < min || value > max) {
+    throw new HttpError(400, `${name} must be an integer from ${min} to ${max}`);
+  }
+  return value;
 }
 
 /**

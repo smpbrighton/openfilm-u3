@@ -304,14 +304,90 @@ test('POST projects/:id/u3/library/place: its project path, the same one twice; 
 test('GET u3/library/memes lists the memes, by emotion and by the scene', () => withLibrary(lib, async () => {
   const all = await (await fetch(`${base}/u3/library/memes`)).json();
   assert.equal(all.dir, lib);
+  assert.equal(all.total, 4);
+  assert.equal(all.next, null);
   assert.deepEqual(all.items.map((i) => i.id), ['giphy-lol', 'giphy-old', 'tenor-new', 'tenor-wow']);
   assert.deepEqual(all.items[0], { id: 'giphy-lol', emotion: '웃음', situations: [], description: '', durationSec: 2, width: 400, height: 200 });
   const confused = await (await fetch(`${base}/u3/library/memes?emotion=${encodeURIComponent('당황')}`)).json();
   assert.deepEqual(confused.items.map((i) => i.id), ['giphy-old', 'tenor-new']);
+  assert.equal(confused.total, 2);
   const found = await (await fetch(`${base}/u3/library/memes?q=${encodeURIComponent('깜짝 놀라는 장면')}`)).json();
   assert.deepEqual(found.items.map((i) => i.id), ['tenor-wow'], 'what does not fit is left out');
   const none = await withLibrary(join(tmpdir(), 'of-u3-no-such-library'), async () => (await fetch(`${base}/u3/library/memes`)).json());
-  assert.deepEqual(none, { dir: null, items: [] });
+  assert.deepEqual(none, { dir: null, items: [], total: 0, next: null });
+}));
+
+test('GET memes pages in id order: 24 by default, custom limit, last page, and beyond the end', async () => {
+  const dir = addMemes(library(), Array.from({ length: 105 }, (_, i) => [
+    'laugh', { id: `meme-${String(i).padStart(3, '0')}`, emotion: '웃음' },
+  ]).reverse());
+  await withLibrary(dir, async () => {
+    const get = async (query = '') => (await fetch(`${base}/u3/library/memes${query}`)).json();
+    const first = await get();
+    assert.equal(first.items.length, 24);
+    assert.equal(first.total, 105);
+    assert.equal(first.next, 24);
+    const second = await get('?offset=24');
+    assert.equal(second.items.length, 24);
+    assert.equal(second.items[0].id, 'meme-024');
+    assert.equal(second.next, 48);
+    assert.equal(second.total, 105);
+    const maximum = await get('?limit=100');
+    assert.equal(maximum.items.length, 100);
+    assert.equal(maximum.next, 100);
+    const last = await get('?offset=100&limit=5');
+    assert.deepEqual(last.items.map((i) => i.id), ['meme-100', 'meme-101', 'meme-102', 'meme-103', 'meme-104']);
+    assert.equal(last.next, null);
+    const beyond = await get('?offset=999');
+    assert.deepEqual(beyond.items, []);
+    assert.equal(beyond.total, 105);
+    assert.equal(beyond.next, null);
+  });
+});
+
+test('GET memes ranks and filters before paging; zero scores stay out of total and next', async () => {
+  const dir = addMemes(library(), [
+    ['surprised', { id: 'a-old', emotion: '놀람', importedAt: '2026-01-01T00:00:00Z' }],
+    ['surprised', { id: 'b-new', emotion: '놀람' }],
+    ['surprised', { id: 'c-confirmed', emotion: '놀람', tagsConfirmed: true }],
+    ['surprised', { id: 'd-confirmed', emotion: '놀람', tagsConfirmed: true }],
+    ['laugh', { id: 'e-tag', emotion: '웃음', situations: ['놀람'] }],
+    ['laugh', { id: 'f-zero', emotion: '웃음' }],
+  ]);
+  await withLibrary(dir, async () => {
+    const get = async (offset, emotion = '') => (await fetch(`${base}/u3/library/memes?${new URLSearchParams({ q: '놀람', emotion, offset: String(offset), limit: '2' })}`)).json();
+    const first = await get(0);
+    assert.deepEqual(first.items.map((i) => i.id), ['c-confirmed', 'd-confirmed']);
+    assert.equal(first.total, 5);
+    assert.equal(first.next, 2);
+    const second = await get(2);
+    assert.deepEqual(second.items.map((i) => i.id), ['b-new', 'a-old']);
+    assert.equal(second.next, 4);
+    assert.equal(second.total, 5);
+    const last = await get(4);
+    assert.deepEqual(last.items.map((i) => i.id), ['e-tag']);
+    assert.equal(last.next, null);
+    const filtered = await get(2, '놀람');
+    assert.deepEqual(filtered.items.map((i) => i.id), ['b-new', 'a-old']);
+    assert.equal(filtered.total, 4);
+    assert.equal(filtered.next, null);
+    const noMatches = await get(0, '당황');
+    assert.deepEqual(noMatches.items, []);
+    assert.equal(noMatches.total, 0);
+    assert.equal(noMatches.next, null);
+    assert.deepEqual(await get(0), first, 'the same search has the same page');
+  });
+});
+
+test('GET memes refuses invalid limits and offsets, including when the library is missing', () => withLibrary(lib, async () => {
+  for (const query of ['limit=0', 'limit=101', 'limit=-1', 'limit=1.5', 'limit=NaN', 'limit=', 'limit=1e1', 'offset=-1', 'offset=0.5', 'offset=Infinity', 'offset=', 'offset=9007199254740992']) {
+    const response = await fetch(`${base}/u3/library/memes?${query}`);
+    assert.equal(response.status, 400, query);
+    assert.match((await response.json()).error, /must be an integer/);
+  }
+  await withLibrary(join(tmpdir(), 'of-u3-no-such-library'), async () => {
+    assert.equal((await fetch(`${base}/u3/library/memes?limit=101`)).status, 400);
+  });
 }));
 
 test('GET u3/library/file?kind=meme is the meme; another kind and ../ are refused', () => withLibrary(lib, async () => {
