@@ -26,7 +26,7 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 - 레포는 비공개 복제본이다. 원격 `upstream` 이 openfilm 이고 `git fetch upstream` 으로 변경을 받는다. 병합 비용을 낮게 유지한다(0003).
 - 데스크톱은 Electron 44, electron-updater 6.8.9, electron-builder 26.15.3 이다.
 - 크기: 짤 라이브러리 212MB, bge-m3 모델 2.1GB, whisper 모델 574MB. 모델은 앱에 넣지 않는다.
-- 번들 짤·효과음·폰트는 재배포 권리를 확인한 것만 넣는다.
+- 번들 짤·효과음·폰트의 재배포 권리는 공개 배포 전에 확인한다.
 
 ## 결정
 - 데스크톱 셸은 Electron 을 유지한다 — [0001](decisions/0001-electron-shell.md)
@@ -53,7 +53,6 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 
 | 순서 | slug | 트랙 | 선행 |
 |---|---|---|---|
-| 1 | u3-library-sfx | lite | 없음 |
 | 2 | u3-library-memes | lite | 1 |
 | 3 | u3-subtitle-clips | full | 없음 |
 | 4 | u3-whisper-asr | lite | 3 |
