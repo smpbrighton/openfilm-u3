@@ -99,7 +99,9 @@ test("OpenCode: every skill denied but its own, OpenFilm's and those let in; Pi:
   const config = JSON.parse(oc.env.OPENCODE_CONFIG_CONTENT);
   /* the project's brand and lyric-pv; of the official skills that come with the package, only one installed */
   const official = readdirSync(new URL('../../../packages/openfilm/skills/', import.meta.url), { withFileTypes: true }).filter((e) => e.isDirectory());
-  const names = [official[0].name, 'brand', 'lyric-pv'].sort();
+  /* and u3's, read-only, beside them (packages/openfilm/src/skills.mjs, source u3) */
+  const u3 = readdirSync(new URL('../../../u3/skills/', import.meta.url), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
+  const names = [official[0].name, 'brand', 'lyric-pv', ...u3].sort();
   assert.deepEqual(config.permission.skill, { '*': 'deny', 'customize-opencode': 'allow', ...Object.fromEntries([...names, 'research'].sort().map((n) => [n, 'allow'])) });
   assert.deepEqual(config.mcp, { search: { enabled: false } });
   assert.match(config.skills.paths[0], /agent-skills[\\/].+[\\/]skills$/);
