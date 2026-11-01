@@ -39,7 +39,6 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 항목마다 추천과 이유를 적는다.
 
 - **패키지 안 코드의 배치**: 추천은 업스트림 폴더에 `u3-` 접두어 파일로 두고 등록은 한 줄만 넣는 것이다. 0003 의 `u3/` 규칙을 패키지 경계 안에서 지키는 방법이다.
-- **짤 라이브러리 212MB 위치**: 추천은 별도 GitHub Release asset 이고 빌드 때 받는다. clone 이 가볍고 u3 의 리소스 배포 방식과 같다.
 - **bge-m3·onnxruntime 의존성 위치**: 추천은 데스크톱 앱에만 둔다. `npx openfilm` 사용자에게 네이티브 모듈을 강요하지 않는다. 모듈이 없으면 규칙 점수로 순위를 낸다.
 - **u3 skill 등록**: 추천은 `src/skills.mjs` 에 네 번째 소스 `u3` 를 더하는 것이다. official 폴더는 `pnpm skills:sync` 가 통째로 바꾸므로 거기 둘 수 없다.
 - **`.vtt` 가져오기 명령 형태**: 추천은 `openfilm get subtitles` 로컬 verb 다. 에이전트가 배우는 명령 체계가 하나로 유지된다.
@@ -53,12 +52,12 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 
 | 순서 | slug | 트랙 | 선행 |
 |---|---|---|---|
-| 2 | u3-library-memes | lite | 1 |
 | 3 | u3-subtitle-clips | full | 없음 |
 | 4 | u3-whisper-asr | lite | 3 |
 | 5 | u3-updates-release | lite | 첫 배포 전 |
 | 6 | u3-make-pipeline | full | 2, 3, 4 |
 | 7 | u3-rebrand | lite | 공개 전 |
+| 8 | u3-meme-embed | full | 2 |
 
 ## 지도
 변경 `changes/` · 결정 `decisions/` · 지도 `MAP.md`

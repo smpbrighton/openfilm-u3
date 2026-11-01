@@ -19,6 +19,8 @@
  *      and the headless browser Studio and `openfilm` draw pages in (Playwright's, the revision the staged
  *      playwright-core takes). People never download either: on a slow or blocked connection the first start used to
  *      fail there;
+ *   2c. u3's memes fetched into the repo's u3/library (u3/scripts/fetch-library.mjs, needs `gh auth login`): the build
+ *      stops when they cannot be;
  *   3. electron-builder makes the .dmg (to download) and the .zip (for updates), signed with the Developer ID
  *      OPENFILM_SIGN_IDENTITY ("Name (TEAMID)") and notarized (APPLE_TEAM_ID, the `openfilm-notary` keychain profile or
  *      OPENFILM_NOTARY_PROFILE), with the update feed written in (none without one). Without OPENFILM_SIGN_IDENTITY
@@ -122,6 +124,9 @@ else console.warn(`No ffmpeg build for ${platform}-${arch}: this app downloads n
 run(process.execPath, [join(stage, 'node_modules/playwright-core/cli.js'), 'install', 'chromium-headless-shell'], {
   env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright'), PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: win ? 'win64' : arch === 'arm64' ? 'mac15-arm64' : 'mac15' },
 });
+/* 2c. u3's memes (git-ignored, 212 MB, a GitHub Release asset): fetched into the repo's u3/library, bundled below with
+   the rest of it. A fetch that fails stops the build */
+run(process.execPath, [join(desktop, '..', '..', 'u3', 'scripts', 'fetch-library.mjs')]);
 
 /* 3. the app */
 const builder = require('electron-builder');

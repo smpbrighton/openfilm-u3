@@ -7,7 +7,7 @@ const USAGE = `openfilm — a film is a function of time: given t, it draws that
   openfilm open    [folder | url]      start or open a project; Studio shows it to the person
   openfilm look    [what] [t | a-b]    check the film and draw it: a contact sheet with its sound and loudness
   openfilm render  [a-b]               the MP4, saved beside film.html
-  openfilm get     [what] [--options]  voice-over, music, sound effects, transcripts, images, video, from a connected service
+  openfilm get     [what] [--options]  voice-over, music, sound effects, memes, transcripts, images, video, from a connected service
   openfilm skills                      the skills this film can be made with; \`openfilm skill <name>\` prints one
   openfilm update                      the newest OpenFilm; Studio starts again on it
   openfilm doctor                      what this computer has for OpenFilm, to paste into an issue
