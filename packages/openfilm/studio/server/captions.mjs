@@ -225,7 +225,6 @@ export async function filmCaptions(root, options = {}) {
   const empty = { cues: /** @type {FilmSubtitleCue[]} */ ([]), sourceLanguage: null, languages: /** @type {string[]} */ ([]), untranscribed: /** @type {string[]} */ ([]) };
   const doc = /** @type {import('../../src/film-doc.d.mts').FilmDoc | null} */ (film.doc);
   if (!doc) return empty;
-  if (doc.tracks.some(track => track.clips.some(clip => clip.id.startsWith('u3sub-')))) return empty;
   const duration = options.duration ?? ((/** @type {string} */ src) => probe(root, src).then((p) => p.duration, () => undefined));
   /** @type {Map<string, { lines: SpokenLine[], speaker?: string, alt: AltLines, cut?: boolean } | null>} */
   const known = new Map();
@@ -266,6 +265,9 @@ export async function filmCaptions(root, options = {}) {
       fromMs: span.from * 1000, startMs: (clip.at ?? 0) * 1000, durMs: span.length * 1000, speed: span.speed,
     }, { alt: said.alt, ...(said.speaker ? { speaker: said.speaker } : {}), clip: clip.id, src: clip.src, ...(said.cut ? { cut: true } : {}) }));
   }
+  /* u3's subtitle clips draw the subtitles in the film (architecture/decisions/0010): Studio draws none beside them;
+     what is not transcribed yet is still said, for 자막 만들기 */
+  if (doc.tracks.some(track => track.clips.some(clip => clip.id.startsWith('u3sub-')))) return { ...empty, untranscribed: [...untranscribed] };
   cues.sort((a, b) => a.startMs - b.startMs);
   /* a speaker's name tells voices apart; with one voice in the film it tells nothing, and would open every line */
   if (new Set(cues.map((c) => c.speaker).filter(Boolean)).size <= 1) for (const c of cues) delete c.speaker;
