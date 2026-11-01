@@ -1,11 +1,11 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BGE_FILES, BGE_REVISION, downloadModelFile, memeDoc, memeDocHash, mergeCandidates, modelStore, readMemeIndex, searchMemeIndex, memeSearch } from './u3-meme-embed.mjs';
-import { matchMemes, rankMemes } from './u3-library.mjs';
+import { listMemes, matchMemes, rankMemes } from './u3-library.mjs';
 
 const made = [];
 const temp = () => { const p = mkdtempSync(join(tmpdir(), 'of-u3-embed-')); made.push(p); return p; };
@@ -133,4 +133,23 @@ test('model status/download concurrency, progress, reuse and local corruption ch
   const bad = modelStore({ root: temp(), files: [modelFile()], fetcher: async () => new Response('xxxxxxxx') });
   await assert.rejects(bad.download(), /SHA-256/);
   assert.equal((await bad.status()).state, 'error');
+});
+
+test('an in-place sidecar edit invalidates the library cache and excludes its stale vector', async () => {
+  const dir = temp();
+  const folder = join(dir, 'memes', 'laugh');
+  mkdirSync(folder, { recursive: true });
+  for (const m of library) {
+    writeFileSync(join(folder, m.id + '.mp4'), m.id);
+    writeFileSync(join(folder, m.id + '.json'), JSON.stringify(m));
+  }
+  const before = await listMemes(dir);
+  const index = await readMemeIndex(indexAt(dir));
+  assert.ok(searchMemeIndex(index, [0, 1], before).some((r) => r.id === 'b'));
+  const folderTime = statSync(folder).mtimeMs;
+  writeFileSync(join(folder, 'b.json'), JSON.stringify({ ...library[1], description: '완전히 바뀐 사이드카 설명' }));
+  assert.equal(statSync(folder).mtimeMs, folderTime, 'file edit does not change the directory time');
+  const after = await listMemes(dir);
+  assert.equal(after.find((m) => m.id === 'b').description, '완전히 바뀐 사이드카 설명');
+  assert.ok(!searchMemeIndex(index, [0, 1], after).some((r) => r.id === 'b'));
 });
