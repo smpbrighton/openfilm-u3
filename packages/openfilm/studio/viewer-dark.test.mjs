@@ -37,7 +37,7 @@ test('a click or a box in the dark around the picture selects no text: the pictu
     studio = await startStudio({ port: 0, openBrowser: () => {} });
     browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader'] });
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: 'en-US', reducedMotion: 'reduce' });
-    await page.addInitScript(() => { localStorage.setItem('openfilm.project.layers', '1'); });
+    await page.addInitScript(() => { localStorage.setItem('openfilm.project.layers', '1'); localStorage.setItem('openfilm.project.u3library', '0'); });
     await page.goto(`${studio.origin}/projects/${project.id}?key=${studio.key}`);
     const until = async (check, what) => {
       for (let i = 0; i < 50; i += 1) { if (await check()) return; await page.waitForTimeout(100); }

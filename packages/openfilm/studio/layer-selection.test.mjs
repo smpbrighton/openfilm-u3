@@ -41,6 +41,8 @@ async function withCard(name, run, { chat = false, again = false } = {}) {
     const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, locale: 'en-US', reducedMotion: 'reduce' });
     await page.addInitScript((withChat) => {
       localStorage.setItem('openfilm.project.layers', '1');
+      /* the u3 library pane, open by default, takes the viewer's room: these clicks are laid out without it */
+      localStorage.setItem('openfilm.project.u3library', '0');
       if (withChat) window.openfilmHost = { version: 1, refer: () => {} };
     }, chat);
     await page.goto(`${studio.origin}/projects/${project.id}?key=${studio.key}`);
