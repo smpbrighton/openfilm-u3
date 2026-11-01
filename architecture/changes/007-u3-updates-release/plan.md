@@ -41,3 +41,10 @@ Track: lite.
 - `pnpm run verify`.
 ### 롤백
 병합 revert. 공개 레포는 남는다(지우기는 사람 확인).
+
+## 구현에서 달라진 것
+- 공개 게이트를 시험할 수 있도록 `apps/desktop/scripts/u3-release.mjs`와 `.test.mjs`를 추가했다. 두 플랫폼 fragment의 버전·소스 commit·파일 목록·해시, 피드의 해시·크기, Windows 서명·서명된 버전을 확인한다. 업로드한 자산을 다시 받아 공개 전에 같은 검증을 실행한다.
+- 시험 fixture는 `apps/desktop/fixtures/u3-minisign/`에 둔다. `src/`를 복사하는 설치 파일에 시험 fixture가 들어가지 않게 했다. 시험 개인키는 보관하지 않는다.
+- Windows job에 Electron fixture 검증 게이트를 추가했다. 로컬 macOS의 Electron 44.9.3 내장 Node 24.22.0은 Ed25519를 지원하지만 `blake2b512`를 지원하지 않는다. 시스템 Node의 대상 테스트 18건은 통과했지만 Electron 테스트는 11건 중 4건 실패했다. `ED` 지원 증명은 미충족이다. 현재 workflow는 정상 릴리스 공개를 차단한다. Node `crypto`만 허용한 결정에 따라 대체 해시 구현이나 의존성은 추가하지 않았다.
+- 공개 레포 `smpbrighton/u3-studio-releases`와 README는 이어받은 시점에 이미 있었다. 공개 상태·설명·README를 확인했으며 다시 만들거나 수정하지 않았다.
+- 이번 구현은 이 worktree에서만 수행한다. 사용자 지시에 따라 병합·소스 레포 push·다른 worktree 수정은 수행하지 않는다. 실제 키 생성·공개키 반영·secret 등록·실제 릴리스·Windows 실기기 검증은 수행하지 않는다.

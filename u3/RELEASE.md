@@ -2,6 +2,12 @@
 
 소스는 비공개 `smpbrighton/openfilm-u3`에 둔다. 설치 파일·업데이트 피드·서명·검증 fragment만 공개 [smpbrighton/u3-studio-releases](https://github.com/smpbrighton/u3-studio-releases)에 올린다. 소스 레포의 `desktop` workflow가 공개를 담당한다. 공개 레포는 README만 준비한 상태다.
 
+## 현재 배포 차단
+
+로컬 macOS에서 잠금 파일의 Electron 44.9.3 내장 Node 24.22.0으로 확인했다. Ed25519 검증은 통과했지만 `blake2b512`는 지원하지 않았다. 따라서 원본 `Ed` fixture는 통과하고, 기본 minisign 형식인 prehash `ED` fixture는 `Digest method not supported`로 실패한다. 시스템 Node의 테스트 통과만으로 Electron의 prehash 업데이트 검증을 증명하지 못한다. Windows 실기기에서는 아직 확인하지 않았다.
+
+Windows job은 설치 파일을 만들기 전에 Electron fixture 테스트를 실행한다. 이 테스트가 실패하면 정상 릴리스를 공개하지 않는다. 실제 키와 secrets를 등록해도 이 차단은 해제되지 않는다. Node `crypto`만 사용하는 현재 plan 밖의 대체 해시 구현이나 의존성은 추가하지 않았다. prehash 검증을 Electron에서 통과시키는 설계를 먼저 결정하고 검증해야 한다.
+
 ## 첫 릴리스 전 준비
 
 실제 키와 GitHub secret은 사람이 등록한다. 이 변경은 실제 키를 만들지 않으며 secret과 variable을 등록하지 않는다. `packages/openfilm/product.official.json`의 `desktop.minisignPublicKey`는 빈 값이다. 빈 키로는 Windows 서명 검증을 통과하지 못한다. workflow도 정상 릴리스의 draft 생성 전에 빈 키를 거부한다. 이름·로고 교체와 번들 리소스의 재배포 권리 확인은 별도 변경이다.
@@ -58,4 +64,4 @@ Tauri의 `.sig`는 minisign 텍스트를 다시 base64로 포장한다. 이 앱�
 
 `node --test apps/desktop/src/u3-minisign.test.mjs apps/desktop/src/u3-update-verify.test.mjs apps/desktop/src/update-channel.test.mjs apps/desktop/scripts/u3-release.test.mjs`로 보안 경계와 fragment 검증을 실행한다. 시험 fixture는 `apps/desktop/fixtures/u3-minisign/`에 있다. 실제 서명 키가 없으며 앱의 `src/` 패키징에 포함하지 않는다.
 
-Electron 내장 Node에서도 fixture 테스트를 실행해야 한다. Electron의 암호 구현은 시스템 Node와 다르다. 실제 릴리스·Developer ID 공증·Windows 실기기의 이전 버전에서 새 버전으로 업데이트는 실제 키와 secrets 등록 뒤 확인한다. Windows SmartScreen의 첫 설치 경고는 minisign으로 제거되지 않는다. electron-updater는 설치 직전에 파일을 다시 검증하지 않는다. 다운로드 캐시 파일 교체 위협은 결정 0002에 따라 OS 사용자 권한 경계에 맡긴다.
+`cd apps/desktop` 뒤 `ELECTRON_RUN_AS_NODE=1 pnpm exec electron --test src/u3-minisign.test.mjs src/u3-update-verify.test.mjs`로 Electron 내장 Node에서도 fixture 테스트를 실행한다. 현재 결과는 11건 중 7건 통과·4건 실패다. Electron의 암호 구현은 시스템 Node와 다르다. 실제 릴리스·Developer ID 공증·Windows 실기기의 이전 버전에서 새 버전으로 업데이트는 위 배포 차단 해결과 실제 키·secrets 등록 뒤 확인한다. Windows SmartScreen의 첫 설치 경고는 minisign으로 제거되지 않는다. electron-updater는 설치 직전에 파일을 다시 검증하지 않는다. 다운로드 캐시 파일 교체 위협은 결정 0002에 따라 OS 사용자 권한 경계에 맡긴다.

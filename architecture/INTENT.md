@@ -51,7 +51,6 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 
 | 순서 | slug | 트랙 | 선행 |
 |---|---|---|---|
-| 5 | u3-updates-release | lite | 첫 배포 전 |
 | 6 | u3-make-pipeline | full | 2, 3, 4 |
 | 7 | u3-rebrand | lite | 공개 전 |
 
