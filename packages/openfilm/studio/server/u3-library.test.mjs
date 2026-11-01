@@ -227,6 +227,16 @@ test('placing a meme copies it into assets/video/memes once; ../ is refused', as
   await assert.rejects(placeMeme(root, '../x', dir), (e) => e.status === 400);
 });
 
+test('the same meme and sound placed twice at once land once, both at the same path', async () => {
+  const dir = addMemes(library(), MEMES);
+  const root = mkdtempSync(join(tmpdir(), 'of-u3-project-'));
+  made.push(root);
+  const memes = await Promise.all([placeMeme(root, 'giphy-lol', dir), placeMeme(root, 'giphy-lol', dir), placeMeme(root, 'giphy-lol', dir)]);
+  assert.deepEqual(memes, ['assets/video/memes/giphy-lol.mp4', 'assets/video/memes/giphy-lol.mp4', 'assets/video/memes/giphy-lol.mp4']);
+  const sounds = await Promise.all([placeSfx(root, 'sfx-b-shock', dir), placeSfx(root, 'sfx-b-shock', dir)]);
+  assert.deepEqual(sounds, ['assets/audio/sfx/sfx-b-shock.mp3', 'assets/audio/sfx/sfx-b-shock.mp3']);
+});
+
 /* ── the routes, on a server of their own ── */
 let server;
 let base = '';

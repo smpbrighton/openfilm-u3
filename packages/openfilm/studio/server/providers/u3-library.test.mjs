@@ -20,6 +20,10 @@ test('a keyless provider of sound effects and memes', async () => {
   await assert.rejects(u3Library.run('sfx', { out: 'a/b', prompt: '놀람' }, ctx()), /--out is a name/);
 });
 
+test('each kind it makes has a model to pick in Settings → Models (one, the library)', () => {
+  for (const verb of u3Library.verbs) assert.equal(u3Library.models?.[verb]?.length, 1, `${verb} has no model to pick`);
+});
+
 test('놀람 lands the best shock as assets/audio/sfx/<out>.mp3, the library\'s bytes as they are', async () => {
   delete process.env.OPENFILM_U3_LIBRARY;
   const result = await u3Library.run('sfx', { out: 'boom', prompt: '놀람' }, ctx());
