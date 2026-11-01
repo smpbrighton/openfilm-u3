@@ -28,6 +28,7 @@ import azure from './azure.mjs';
 import doubao from './doubao.mjs';
 import mimo from './mimo.mjs';
 import keenable from './keenable.mjs';
+import u3Library from './u3-library.mjs';
 
 /**
  * @typedef {import('./contract.mjs').Provider} Provider @typedef {import('./contract.mjs').Verb} Verb
@@ -36,7 +37,7 @@ import keenable from './keenable.mjs';
  */
 
 /** The providers paid with the person's own key. */
-const OWN = [elevenlabs, openai, google, fal, pexels, pixabay, brave, tavily, groq, azure, doubao, mimo, keenable];
+const OWN = [elevenlabs, openai, google, fal, pexels, pixabay, brave, tavily, groq, azure, doubao, mimo, keenable, u3Library];
 
 /** The kinds of media the person chooses a provider and model for (Settings → Services). */
 const USE_VERBS = /** @type {Verb[]} */ (['tts', 'music', 'sfx', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search']);
