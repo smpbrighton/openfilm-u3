@@ -50,3 +50,7 @@ Track: lite.
 - `studio/layer-selection.test.mjs:263`은 복사 뒤 상자 선택으로 6개를 선택하지 못한다. 단독 실행에서도 실패했다. Aside에서 1400×1000 화면을 재현하면 패널을 열었을 때 같은 드래그가 복사본 3개를 회전시키고, 패널을 닫으면 6개를 선택한다. 영상 표시 폭은 각각 261px와 311px다.
 - `studio/viewer-dark.test.mjs:57`은 1280×800 화면에서 영상 왼쪽 여백이 20px를 넘는다는 단언에 실패한다. 이 실패는 전체 verify에서 확인했다. 패널 기본 열림에 따른 화면 배치 영향으로 추정하며, 별도 Studio 재현은 하지 않았다.
 - 두 테스트와 선택 영역·여백을 조정하는 코드는 이 plan의 수정 범위 밖이다. 사용자 지시에 따라 수정하지 않고 보고한다. 증거와 명령별 결과는 미커밋 `impl-report.md`와 `.dev/u3-library-ui-evidence/`에 둔다.
+
+## 세션 검토에서 고친 것
+- codex 는 verify 실패 2건(`studio/layer-selection.test.mjs`, `studio/viewer-dark.test.mjs`)을 범위 밖 기존 실패로 보고했다. main 에서는 두 테스트가 통과하고, 004 에서 패널 기본값을 `false` 로 되돌리면 통과한다. 그래서 이 변경의 회귀다. 패널이 기본으로 열리면 뷰어가 좁아져 두 테스트의 좌표 클릭이 빗나간다. 두 테스트는 이미 `localStorage` 로 레이아웃을 고정하므로, 단언은 두고 고정에 `openfilm.project.u3library = '0'` 을 더했다(`a93bfc6`).
+- Studio 수동 확인(codex, Aside): 기본 열림, 24→48건, 검색 24→48건, 감정 거르기, 가까운 행만 src, hover 재생·정지. 증거는 워크트리 `.dev/u3-library-ui-evidence/`(커밋하지 않음).
