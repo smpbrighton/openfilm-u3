@@ -22,3 +22,7 @@ dist/
 *.log
 .env
 .agents/
+
+# u3 meme library: fetched from a GitHub Release (u3/scripts/fetch-library.mjs)
+u3/library/memes/
+u3/library/.fetch-*/
