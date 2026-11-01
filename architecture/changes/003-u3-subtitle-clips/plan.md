@@ -59,3 +59,17 @@ INTENT 기대 결과 3·4번: 자막 한 줄이 페이지 클립이고, `.vtt` �
 - 1단계 render 첫 프레임에서 별표가 보이지 않았다. 강조 방식은 원안의 MutationObserver 를 유지했다.
 - 사용자 지시로 이 worktree 의 구현은 1–8단계까지만 수행한다. 9단계의 Studio 수동 확인·프레임 비교·병합은 사용자가 수행한다. push 도 하지 않는다.
 - 전체 verify 는 데스크톱 `src/agent-skills.test.mjs:103` 에서 실패했다. 기존 예상 skill 목록에 새 `u3-media`·`u3-subtitles` 가 없다. 이 테스트 파일은 plan 범위 밖이므로 고치지 않았다. 대상 테스트 64건·typecheck·architecture lint 는 통과했지만 전체 verify 통과 조건은 충족하지 못했다.
+
+## 세션 검토에서 고친 것
+- 데스크톱 테스트 `agent-skills.test.mjs` 가 에이전트 세션 skill 목록을 고정해 verify 가 실패했다. u3 skill 이 세션에 들어가는 것은 요구사항 9 의 의도된 동작이라, 기대값을 `u3/skills` 폴더에서 읽게 했다(`a99c592`).
+- 템플릿이 1080×1920 고정이라 1920×1080 film 에서 자막이 무대 밖으로 잘렸다(Studio 수동 확인). 실패 테스트 `ea51720` 뒤 레이어 페이지를 film 의 무대 크기로 쓴다(`5edec64`).
+- `filmCaptions` 가드가 `untranscribed` 까지 비워 자막 클립 film 에서 「자막 만들기」가 받아쓸 녹음을 찾지 못했다(결정 0010 의 「자막 만들기는 그대로」와 어긋남). 실패 테스트 `710f10a` 뒤 cue 만 비운다(`7a4519c`).
+
+## 확인 결과
+- `pnpm run verify`: exit 0, `✓ verify passed`(openfilm 1555, shared 20, desktop 406, fail 0).
+- codex 실측(1단계): render 첫 프레임에 별표 없음, `look` 0.15초 pop 프레임. 강조 대안으로 바꾸지 않았다. 증거는 워크트리 `.dev/u3-subtitles-evidence/`(커밋하지 않음).
+- `get subtitles`(Studio 샘플): cue 2개 → 클립 2개, `.vtt` 의 별표는 `\*` 로 저장.
+- Studio 수동(Aside): 인스펙터에 메인·서브·튀어나옴·떠오름·흔들림·색·크기·강조색. `*진짜*` 가 별표 없이 주황색, 서브 줄 표시, 1920×1080 무대 안.
+- CC 토글: 샘플에 소리가 없어 버튼이 꺼져 있어 화면 확인 불가. `filmCaptions` 빈 cue 는 단위 테스트로 확인했다.
+- 검증 기준 6(미리보기와 render 프레임 차이 평균 2% 이하): **통과하지 못했다.** 세 시각 2.52%, 2.73%, 2.58%. 원인은 배경 색 차이(미리보기 (14,15,19), render (8,10,13), 배경만 1.96%)와 글 가장자리 재표본이다. openfilm 의 기존 타이틀 글 영역도 같은 방식으로 5.3–8.2% 다. 자막 상자 영역은 7.2–10.3% 다. 측정 스크립트는 세션 스크래치패드 `cmp.sh`.
+- 미검증: 데스크톱 패키지 빌드에 `u3/skills`·pages 가 실리는지.
