@@ -88,7 +88,7 @@ import { AudioMeters, METERS_W } from './AudioMeters';
 import { trackFlagStep, type SessionTimeline } from './OperationHistory';
 import { ProjectLayoutMenu } from './ProjectLayoutMenu';
 import { U3LibraryPane } from './U3LibraryPanel';
-import { placeU3Sfx } from '@/lib/u3-library';
+import { placeU3Meme, placeU3Sfx, u3MemeBox } from '@/lib/u3-library';
 import { ProjectMenu } from './ProjectMenu';
 import { ProjectHistoryButton, ProjectHistoryControls } from './ProjectHistoryControls';
 import { useProjectHistory } from './use-project-history';
@@ -1316,10 +1316,19 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   const dropAsset = React.useCallback(async (file: ResourceDragItem, target: AssetDropTarget, atMs: number): Promise<string | null> => {
     const plan = assetDropInsert(file, timelineTracks, target, atMs, stageRef.current);
     if ('error' in plan) return plan.error === 'locked' ? t('timeline.trackLocked') : t('timeline.dropNotClip');
-    /* a sound of u3's library (lib/u3-library): put in the project first, then dropped as a file of it */
+    /* a sound or a meme of u3's library (lib/u3-library): put in the project first, then dropped as a file of it; a
+       meme centered, 60% of the stage's width */
     if (file.u3Library) {
       const { u3Library: id, ...rest } = file;
-      try { return await dropAssetRef.current({ ...rest, path: await placeU3Sfx(projectId, id) }, target, atMs); } catch (e) { return e instanceof Error ? e.message : String(e); }
+      try {
+        if (file.kind !== 'video') return await dropAssetRef.current({ ...rest, path: await placeU3Sfx(projectId, id) }, target, atMs);
+        const placed = { ...rest, path: await placeU3Meme(projectId, id) };
+        const box = u3MemeBox(placed, stageRef.current);
+        return await edit([
+          { op: 'insert', clip: { ...plan.element, src: placed.path, ...(box ? { box } : {}) } as never, at: plan.at, ...(plan.track != null ? { track: plan.track } : {}) },
+          ...roomFor([{ track: plan.track, atSec: plan.at, durMs: assetRunMs([placed]) }], target.edit),
+        ], 'history.stepDrop');
+      } catch (e) { return e instanceof Error ? e.message : String(e); }
     }
     /* a thing of Saved (lib/saved): brought into the project first (a file imported, a bundle's files copied in), then
        put where it was dropped: a file as a file of the project goes, a clip as it was saved */

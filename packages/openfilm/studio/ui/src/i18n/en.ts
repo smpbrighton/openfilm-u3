@@ -1320,7 +1320,7 @@ export const en = {
     timeline: 'Timeline',
     inspector: 'Inspector',
   },
-  /* u3's bundled sound effects (components/U3LibraryPanel) */
+  /* u3's bundled sound effects and memes (components/U3LibraryPanel) */
   u3Library: {
     layout: 'u3 Library',
     title: 'u3 Library',
@@ -1333,6 +1333,13 @@ export const en = {
     stop: 'Stop',
     none: 'No sound effect matches.',
     missing: 'There is no u3 library here. Set OPENFILM_U3_LIBRARY to the folder that has sfx/ in it, and open the project again.',
+    tabSfx: 'Sound effects',
+    tabMemes: 'Memes',
+    searchMemes: 'Search memes',
+    emotion: 'Emotion',
+    preview: 'Preview',
+    noMemes: 'No meme matches.',
+    missingMemes: 'The u3 library has no memes here. Run node u3/scripts/fetch-library.mjs (needs gh auth login), and open the project again.',
   },
   timeline: {
     renameTrack: "Rename track",
@@ -2056,6 +2063,7 @@ export const en = {
         voice: 'Voices',
         music: 'Music',
         sfx: 'Sound effects',
+        meme: 'Memes',
         asr: 'Transcription',
         image: 'Images',
         'image-search': 'Image search',
@@ -2074,6 +2082,7 @@ export const en = {
         tts: 'Speaks a script, and finds voices to speak it',
         music: 'Makes a soundtrack from a description',
         sfx: 'Makes a sound from a description',
+        meme: 'Finds a reaction meme in the u3 library for a scene',
         asr: 'Writes down what is said, word by word, for subtitles',
         image: 'Makes a picture from a description',
         'image-search': 'Finds pictures on the web',

@@ -1316,7 +1316,7 @@ export const ko: Words = {
     timeline: '타임라인',
     inspector: '인스펙터',
   },
-  /* u3's bundled sound effects (components/U3LibraryPanel) */
+  /* u3's bundled sound effects and memes (components/U3LibraryPanel) */
   u3Library: {
     layout: 'u3 라이브러리',
     title: 'u3 라이브러리',
@@ -1329,6 +1329,13 @@ export const ko: Words = {
     stop: '멈추기',
     none: '맞는 효과음이 없습니다.',
     missing: '여기에는 u3 라이브러리가 없습니다. OPENFILM_U3_LIBRARY 를 sfx/ 가 들어 있는 폴더로 정하고 프로젝트를 다시 여세요.',
+    tabSfx: '효과음',
+    tabMemes: '짤',
+    searchMemes: '짤 검색',
+    emotion: '감정',
+    preview: '미리 보기',
+    noMemes: '맞는 짤이 없습니다.',
+    missingMemes: '여기의 u3 라이브러리에는 짤이 없습니다. node u3/scripts/fetch-library.mjs 를 실행하고(gh auth login 필요) 프로젝트를 다시 여세요.',
   },
   timeline: {
     renameTrack: "트랙 이름 바꾸기",
@@ -2051,6 +2058,7 @@ export const ko: Words = {
         voice: '음성',
         music: '음악',
         sfx: '효과음',
+        meme: '짤',
         asr: '음성 인식',
         image: '이미지',
         'image-search': '이미지 검색',
@@ -2069,6 +2077,7 @@ export const ko: Words = {
         tts: '대본을 읽고, 읽을 음성을 찾습니다',
         music: '설명으로 사운드트랙을 만듭니다',
         sfx: '설명으로 소리를 만듭니다',
+        meme: '장면에 맞는 짤을 u3 라이브러리에서 찾습니다',
         asr: '자막용으로 말한 내용을 단어 단위로 받아 적습니다',
         image: '설명으로 이미지를 만듭니다',
         'image-search': '웹에서 이미지를 찾습니다',

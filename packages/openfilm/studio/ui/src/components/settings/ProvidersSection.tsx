@@ -19,7 +19,7 @@ import { ProviderMark } from './ProviderMark';
 import { SettingsButton, SettingsField, SettingsGroup, SettingsInset, SettingsItem, SettingsPage, SettingsStatus, settingsError, settingsLink } from './ui';
 
 /** What a provider can make, in the order Models lists it (listing voices goes without saying with voice-over). */
-const ABILITY_ORDER: ProviderVerb[] = ['tts', 'music', 'sfx', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search'];
+const ABILITY_ORDER: ProviderVerb[] = ['tts', 'music', 'sfx', 'meme', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search'];
 
 
 export function ProvidersSection() {

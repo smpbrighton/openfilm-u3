@@ -6,7 +6,7 @@
  */
 import React from 'react';
 
-export type ProviderVerb = 'voice' | 'tts' | 'sfx' | 'music' | 'asr' | 'image-search' | 'image' | 'video' | 'translate' | 'web-search' | 'web-fetch';
+export type ProviderVerb = 'voice' | 'tts' | 'sfx' | 'meme' | 'music' | 'asr' | 'image-search' | 'image' | 'video' | 'translate' | 'web-search' | 'web-fetch';
 
 
 export interface OwnProvider {
@@ -88,7 +88,7 @@ export function azureKey(region: string, key: string): string | null {
 export const offered = (state: ProvidersState, verb: ProviderVerb) => state.providers.some((p) => p.verbs.includes(verb));
 
 /** The kinds of media the person chooses a provider for, in the order they are listed. */
-export const USE_VERBS: ProviderVerb[] = ['tts', 'music', 'sfx', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search'];
+export const USE_VERBS: ProviderVerb[] = ['tts', 'music', 'sfx', 'meme', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search'];
 
 async function call<T = ProvidersState>(path: string, init?: { method: string; json?: unknown }): Promise<T> {
   const res = await fetch(`/api/providers${path}`, {
