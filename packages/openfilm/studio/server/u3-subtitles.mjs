@@ -1,9 +1,9 @@
 // @ts-check
 /** Local WebVTT import: one cue per page clip, one page and track per layer. */
 import { constants } from 'node:fs';
-import { copyFile, mkdir, readdir, readFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
-import { readFilm } from '../../src/film-doc.mjs';
+import { FILM_FILE, readFilm, readFilmFile } from '../../src/film-doc.mjs';
 import { changeProjectFilm } from './film.mjs';
 import { inside } from './files.mjs';
 import { HttpError } from './http.mjs';
@@ -26,6 +26,22 @@ const PROPS = [
 const escapeStars = (text) => text.replace(/\\\*|\*/g, star => star === '*' ? '\\*' : star);
 
 /** Copy only missing files; the layer's style and fonts belong to the project after the first import. */
+/** The template, laid out at the film's stage: it is written portrait (1080 × 1920), both in its CSS and in window.film.
+    @param {string} html @param {{ w: number, h: number }} stage */
+export function stagedTemplate(html, { w, h }) {
+  const out = html
+    .replace(/width:\s*1080px;\s*height:\s*1920px/g, `width: ${w}px; height: ${h}px`)
+    .replace(/width:\s*1080,\s*height:\s*1920/g, `width: ${w}, height: ${h}`);
+  if (!out.includes(`width: ${w}px; height: ${h}px`) || !out.includes(`width: ${w}, height: ${h}`)) throw new Error('u3-subtitle.html no longer says its size as width: 1080px; height: 1920px and width: 1080, height: 1920');
+  return out;
+}
+
+/** Write `text` to `to` unless something is there already (a layer the person styled is kept). */
+async function writeMissing(/** @type {string} */ to, /** @type {string} */ text) {
+  await mkdir(dirname(to), { recursive: true });
+  try { await writeFile(to, text, { flag: 'wx' }); } catch (e) { if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'EEXIST') throw e; }
+}
+
 async function copyMissing(/** @type {string} */ from, /** @type {string} */ to) {
   await mkdir(dirname(to), { recursive: true });
   try { await copyFile(from, to, constants.COPYFILE_EXCL); }
@@ -55,7 +71,8 @@ export async function importSubtitles(root, { src, layer = 'layer1' }) {
     overrides: [{ at: '#main-src', text: escapeStars(cue.text) }, { at: '#sub-src', text: '' }],
   }));
   const templates = pagesDir();
-  await copyMissing(join(templates, 'u3-subtitle.html'), inside(root, page));
+  const stage = readFilmFile(await readFile(join(root, FILM_FILE), 'utf8')).doc?.stage ?? { w: 1920, h: 1080 };
+  await writeMissing(inside(root, page), stagedTemplate(await readFile(join(templates, 'u3-subtitle.html'), 'utf8'), stage));
   for (const name of await readdir(join(templates, 'fonts'))) {
     await copyMissing(join(templates, 'fonts', name), inside(root, `scenes/fonts/${name}`));
   }
