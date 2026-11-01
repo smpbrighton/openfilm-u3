@@ -51,3 +51,9 @@ Track: lite.
 - `get.mjs`와 `captions.mjs`는 수정하지 않았다. 기존 ASR landing·skip·force·Studio transcribe 경로를 그대로 사용한다. `get.test.mjs`에 한국어 VTT·skip·force 통합 검증을 추가했다.
 - 실제 검증 모델과 프로젝트는 다른 checkout과 사용자 상태를 건드리지 않도록 이 worktree의 `.dev/u3-whisper-evidence/`에 두었다. 4848 포트가 사용 중이어서 개발 Studio는 64112에서 실행했다. Aside가 4848에서 읽은 것은 인증 오류뿐이며 설정을 바꾸지 않았다. 지정한 Studio에서 로컬 안내·키 없는 재연결·모델 선택·자막 생성을 확인했다.
 - Windows 실행과 데스크톱 설치 파일 전체 빌드는 검증하지 않았다. merge·push와 다른 변경의 Jira·wiki 갱신은 이 구현 지시의 범위 밖이므로 수행하지 않는다.
+
+## 세션 검토
+- `pnpm run verify`: exit 0, `✓ verify passed`(통과 1,991, 실패 0). 대상 테스트 45건 통과.
+- 실제 확인(codex): Yuna 한국어 10초 음성 → CLI `get asr --via u3-whisper` 와 Studio 「자막 만들기」 둘 다 한국어 cue 4개와 단어 시각 9개. 설정에 u3 Whisper 가 키 없이 연결되고 「키 추가」가 없다. 증거는 워크트리 `.dev/u3-whisper-evidence/`(커밋하지 않음).
+- whisper-cli darwin-arm64 는 비공개 prerelease `whisper-cli-1.9.5`, sha256 `355c1791…bed14b`, 시스템 dylib 만 링크.
+- 미검증: Windows(범위 밖), 데스크톱 설치 파일 전체 빌드.
