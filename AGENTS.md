@@ -3,7 +3,8 @@
 @architecture/INTENT.md
 
 ## 커맨드
-- 검증: `pnpm run verify` — 정상 출력 마지막 줄 예시: `✓ verify passed`
+- 검증: `pnpm run verify` (typecheck + 전체 테스트, 약 10분) — 정상 출력 마지막 줄: `✓ verify passed`
+- 검증 전 준비(새 기기 한 번): `pnpm install`, `pnpm --filter openfilm exec playwright-core install chromium-headless-shell`, PATH 에 `ffmpeg`. 브라우저가 없으면 look·host 테스트 17건이 실패한다
 - 개발: `pnpm run dev`
 
 작업을 완료로 보고하기 전에 검증 명령을 돌리고 출력을 붙인다. 테스트가 실패하면 테스트가 아니라 코드를 고친다.

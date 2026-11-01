@@ -38,7 +38,6 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 ## 열린 질문
 항목마다 추천과 이유를 적는다.
 
-- **검증 명령**: 추천 `"verify": "pnpm typecheck && pnpm test"`. 두 스크립트가 이미 워크스페이스 전체를 돈다. AGENTS.md 가 적은 `pnpm run verify` 는 아직 없다. 모든 변경의 게이트이므로 가장 먼저 정한다.
 - **패키지 안 코드의 배치**: 추천은 업스트림 폴더에 `u3-` 접두어 파일로 두고 등록은 한 줄만 넣는 것이다. 0003 의 `u3/` 규칙을 패키지 경계 안에서 지키는 방법이다.
 - **짤 라이브러리 212MB 위치**: 추천은 별도 GitHub Release asset 이고 빌드 때 받는다. clone 이 가볍고 u3 의 리소스 배포 방식과 같다.
 - **bge-m3·onnxruntime 의존성 위치**: 추천은 데스크톱 앱에만 둔다. `npx openfilm` 사용자에게 네이티브 모듈을 강요하지 않는다. 모듈이 없으면 규칙 점수로 순위를 낸다.
@@ -54,12 +53,11 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 
 | 순서 | slug | 트랙 | 선행 |
 |---|---|---|---|
-| 0 | verify-command | 검증 명령만 | 없음 |
-| 1 | u3-library-sfx | lite | 0 |
+| 1 | u3-library-sfx | lite | 없음 |
 | 2 | u3-library-memes | lite | 1 |
-| 3 | u3-subtitle-clips | full | 0 |
+| 3 | u3-subtitle-clips | full | 없음 |
 | 4 | u3-whisper-asr | lite | 3 |
-| 5 | u3-updates-release | lite | 0, 첫 배포 전 |
+| 5 | u3-updates-release | lite | 첫 배포 전 |
 | 6 | u3-make-pipeline | full | 2, 3, 4 |
 | 7 | u3-rebrand | lite | 공개 전 |
 

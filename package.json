@@ -14,6 +14,7 @@
     "build": "pnpm --filter openfilm build:ui && pnpm --filter @openfilm/desktop build:shell",
     "test": "pnpm -r --workspace-concurrency=1 --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
+    "verify": "pnpm typecheck && pnpm test && echo '✓ verify passed'",
     "audit:public": "node scripts/audit-public.mjs",
     "check:pack": "node scripts/check-pack.mjs",
     "skills:sync": "node scripts/sync-skills.mjs",
