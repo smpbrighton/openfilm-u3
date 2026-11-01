@@ -44,9 +44,6 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 
 - **패키지 안 코드의 배치**: 추천은 업스트림 폴더에 `u3-` 접두어 파일로 두고 등록은 한 줄만 넣는 것이다. 0003 의 `u3/` 규칙을 패키지 경계 안에서 지키는 방법이다.
 - **bge-m3·onnxruntime 의존성 위치**: 추천은 데스크톱 앱에만 둔다. `npx openfilm` 사용자에게 네이티브 모듈을 강요하지 않는다. 모듈이 없으면 규칙 점수로 순위를 낸다.
-- **u3 skill 등록**: 추천은 `src/skills.mjs` 에 네 번째 소스 `u3` 를 더하는 것이다. official 폴더는 `pnpm skills:sync` 가 통째로 바꾸므로 거기 둘 수 없다.
-- **`.vtt` 가져오기 명령 형태**: 추천은 `openfilm get subtitles` 로컬 verb 다. 에이전트가 배우는 명령 체계가 하나로 유지된다.
-- **자막 클립 인스펙터 UX**: 메인·서브·레이어 편집을 페이지 클립 인스펙터가 감당하는지 확인하지 않았다. 답 후보는 openfilm 의 component props(`data-props`)다. 자막 클립 변경의 spec 에서 실측한다.
 - **keyless 로컬 provider 표시**: whisper.cpp provider 가 설정 화면에서 어떻게 보이는지 확인하지 않았다. Keenable 이 keyless 선례이므로 그 화면으로 먼저 확인한다.
 - **미리보기와 내보내기 일치**: 같은 Chromium 이라는 추정이다. 자막 클립 변경에서 미리보기 프레임과 내보낸 mp4 프레임을 비교한다.
 - **파이프라인 범위**: 대본, 장면, 짤·효과음 매칭, TTS, 자막, 장면 검토 중 어디까지 넣을지 정하지 않았다. 추천은 TTS 와 음성 분리를 빼는 것이다. 세 가지 핵심 밖이다.
@@ -56,7 +53,6 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 
 | 순서 | slug | 트랙 | 선행 |
 |---|---|---|---|
-| 3 | u3-subtitle-clips | full | 없음 |
 | 4 | u3-whisper-asr | lite | 3 |
 | 5 | u3-updates-release | lite | 첫 배포 전 |
 | 6 | u3-make-pipeline | full | 2, 3, 4 |

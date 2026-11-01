@@ -171,7 +171,7 @@ await builder.build({
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
     /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs; u3's
        bundled library (the repo's u3/library), which Studio reads from OPENFILM_U3_LIBRARY (src/main.mjs) */
-    extraResources: [{ from: runtime, to: 'runtime' }, { from: join(desktop, '..', '..', 'u3', 'library'), to: 'u3-library' }],
+    extraResources: [{ from: runtime, to: 'runtime' }, { from: join(desktop, '..', '..', 'u3', 'library'), to: 'u3-library' }, { from: join(desktop, '..', '..', 'u3', 'skills'), to: 'u3-skills' }],
     directories: { output: out, buildResources: join(desktop, 'build') },
     electronFuses: {
       runAsNode: true,

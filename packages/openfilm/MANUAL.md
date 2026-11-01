@@ -82,5 +82,6 @@ Run them in the film's folder. Each one's `--help` lists its options:
 - `npx openfilm skills`: the skills this film can be made with, each a way of making a kind of film. When the person names one, or one fits what they ask, `npx openfilm skill <name>` prints it: read it whole and follow it. Its folder is only read: copy what the film uses into the project.
 
 The words of a sound or a video are a WebVTT beside it with the same name (`vo/1.wav` → `vo/1.vtt`): a cue per subtitle line, a timestamp tag at each word. Studio makes the film's subtitles from them; never draw subtitles in a page.
+u3 subtitle clips imported with `get subtitles` are the exception: their pages draw the subtitles, and Studio emits no subtitle cues for that film.
 
 Media can come from `get`, any service the person uses (with its API docs and their key), or your own code. Save it under `assets/`.
