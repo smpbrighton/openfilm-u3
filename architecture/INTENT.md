@@ -34,6 +34,10 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 - u3 기능은 provider·skill·verb·별도 패널에 모으고 코어는 고치지 않는다 — [0003](decisions/0003-change-placement.md)
 - 자동 생성 파이프라인은 결정론적 verb 체인이다 — [0004](decisions/0004-deterministic-pipeline.md)
 - 자막은 웹 페이지 클립이고 `.vtt` 는 가져오기 소스다 — [0005](decisions/0005-subtitles-as-page-clips.md)
+- 자막 레이어 하나는 템플릿 페이지 하나이고, 클립별 값은 component props 다 — [0006](decisions/0006-subtitle-clip-template.md)
+- `.vtt` 가져오기는 `openfilm get subtitles` 로컬 verb 다 — [0007](decisions/0007-get-subtitles-local-verb.md)
+- u3 skill 은 `skills.mjs` 의 네 번째 소스 `u3` 로 등록한다 — [0008](decisions/0008-u3-skill-source.md)
+- 자막 클립이 있는 film 에서는 Studio 자막을 끈다 — [0009](decisions/0009-studio-subtitles-off-with-clips.md)
 
 ## 열린 질문
 항목마다 추천과 이유를 적는다.
