@@ -1,5 +1,6 @@
 {
   "desktop": {
-    "updates": "https://openfilm.dev/download/desktop"
+    "updates": "https://github.com/smpbrighton/u3-studio-releases/releases/latest/download",
+    "minisignPublicKey": ""
   }
 }

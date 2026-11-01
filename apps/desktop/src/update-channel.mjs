@@ -3,8 +3,8 @@
  * app menu and kept in the app's data (update-channel.json).
  *
  * Both are in the one feed folder the app was built with (scripts/release.mjs): stable is electron-updater's 'latest'
- * channel (latest-mac.yml, latest.yml on Windows), beta its 'beta' channel (beta-mac.yml, beta.yml). The release
- * pipeline puts a build on beta first and promotes the same bytes to stable.
+ * channel, beta its 'beta' channel. Each target reads its own flat release asset: latest-win-x64.yml or
+ * latest-arm64-mac.yml (electron-updater appends -mac). The public release pipeline publishes stable feeds.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,7 +30,7 @@ export function writeUpdateChannel(dataDir, channel) {
  * Point electron-updater at a channel's feed file. Setting `channel` turns allowDowngrade on (electron-updater's own
  * rule, for leaving a beta): it is turned off again, so moving to stable keeps a beta build until stable passes it.
  */
-export function useUpdateChannel(updater, channel) {
-  updater.channel = channel === 'beta' ? 'beta' : 'latest';
+export function useUpdateChannel(updater, channel, { platform = process.platform, arch = process.arch } = {}) {
+  updater.channel = `${channel === 'beta' ? 'beta' : 'latest'}-${platform === 'darwin' ? '' : 'win-'}${arch}`;
   updater.allowDowngrade = false;
 }

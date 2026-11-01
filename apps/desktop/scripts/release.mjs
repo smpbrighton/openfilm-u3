@@ -72,7 +72,7 @@ const productFile = join(protocol, official ? 'product.official.json' : 'product
 const product = JSON.parse(readFileSync(productFile, 'utf8'));
 const updates = typeof product.desktop?.updates === 'string' ? product.desktop.updates.trim().replace(/\/+$/, '') : '';
 /** Where the packaged app looks for updates (the release's files are uploaded there), or null: it never looks. */
-export const FEED = updates ? `${updates}/${win ? 'win' : 'mac'}/${arch}` : null;
+export const FEED = updates || null;
 const NOTARY_PROFILE = process.env.OPENFILM_NOTARY_PROFILE || 'openfilm-notary';
 
 const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: 'inherit', ...opts });
@@ -204,7 +204,7 @@ await builder.build({
     },
     /* one feed folder for both channels: the app reads latest(-mac).yml, or beta(-mac).yml when Beta Updates is on
        (src/update-channel.mjs); publishing puts this build's feed under either name */
-    publish: FEED ? [{ provider: 'generic', url: FEED, channel: 'latest' }] : null,
+    publish: FEED ? [{ provider: 'generic', url: FEED, channel: 'latest', ...(win ? { publisherName: ['u3-minisign'] } : {}) }] : null,
     mac: {
       category: 'public.app-category.video',
       icon: join(desktop, 'build/icon.icns'),

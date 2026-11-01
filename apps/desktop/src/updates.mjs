@@ -19,6 +19,7 @@ import { clearPendingUpdate, installLanguage, installWords, pendingUpdate, ready
 import { UPDATE_CHANNELS, readUpdateChannel, useUpdateChannel, writeUpdateChannel } from './update-channel.mjs';
 import { createManualUpdateCheck } from './update-menu.mjs';
 import { scheduleUpdateChecks } from './update-schedule.mjs';
+import { createWindowsUpdateVerifier } from './u3-update-verify.mjs';
 
 const { autoUpdater } = electronUpdater;
 
@@ -42,6 +43,7 @@ export function startUpdates({ dataDir, productName, getWindow, onState, prepare
     };
   }
   autoUpdater.logger = null;
+  if (process.platform === 'win32') autoUpdater.verifyUpdateCodeSignature = createWindowsUpdateVerifier(autoUpdater);
   let channel = readUpdateChannel(dataDir);
   useUpdateChannel(autoUpdater, channel);
 

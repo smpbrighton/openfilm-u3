@@ -22,8 +22,11 @@ test('the channel is stable until beta is chosen, and stays chosen', () => {
 test('beta reads the beta feed file, stable the latest one, and neither allows a downgrade', () => {
   /* electron-updater's setter turns allowDowngrade on whenever the channel is set */
   const updater = { allowDowngrade: false, _channel: null, set channel(v) { this._channel = v; this.allowDowngrade = true; }, get channel() { return this._channel; } };
-  useUpdateChannel(updater, 'beta');
-  assert.deepEqual([updater.channel, updater.allowDowngrade], ['beta', false]);
-  useUpdateChannel(updater, 'stable');
-  assert.deepEqual([updater.channel, updater.allowDowngrade], ['latest', false]);
+  for (const platform of ['win32', 'darwin']) for (const arch of ['x64', 'arm64']) {
+    const suffix = platform === 'darwin' ? arch : `win-${arch}`;
+    useUpdateChannel(updater, 'beta', { platform, arch });
+    assert.deepEqual([updater.channel, updater.allowDowngrade], [`beta-${suffix}`, false]);
+    useUpdateChannel(updater, 'stable', { platform, arch });
+    assert.deepEqual([updater.channel, updater.allowDowngrade], [`latest-${suffix}`, false]);
+  }
 });
