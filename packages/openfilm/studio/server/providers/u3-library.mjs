@@ -25,6 +25,8 @@ export default {
   keysUrl: '',
   billingUrl: '',
   verbs: ['sfx', 'meme'],
+  /* one each, so Settings → Models has it to pick: what is found is the library, not a model's */
+  models: { sfx: [{ id: 'library', name: 'u3 library' }], meme: [{ id: 'library', name: 'u3 library' }] },
   keyless: true,
   async run(verb, args, ctx) {
     if (verb === 'meme') return meme(args, ctx);

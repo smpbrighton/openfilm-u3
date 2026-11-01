@@ -361,8 +361,23 @@ export async function placeMeme(root, id, dir = libraryDir()) {
   return placeFile(root, MEMES_DIR, (await memeById(id, dir)).path);
 }
 
+/** Places under way, by their project file: the same file placed again meanwhile waits for it (bringIn's temporary
+    name is one per file and process, so two copies at once would race). */
+const placing = new Map();
+
 /** @param {string} root @param {string} folder @param {string} path */
-async function placeFile(root, folder, path) {
+function placeFile(root, folder, path) {
+  const key = join(root, folder, basename(path));
+  const before = placing.get(key) ?? Promise.resolve();
+  const now = before.catch(() => {}).then(() => placeOnce(root, folder, path));
+  placing.set(key, now);
+  const done = () => { if (placing.get(key) === now) placing.delete(key); };
+  now.then(done, done);
+  return now;
+}
+
+/** @param {string} root @param {string} folder @param {string} path @returns {Promise<string>} */
+async function placeOnce(root, folder, path) {
   const rel = `${folder}/${basename(path)}`;
   const there = lstatSync(join(root, ...rel.split('/')), { throwIfNoEntry: false });
   if (there?.isFile() && there.size === statSync(path).size) return rel;
