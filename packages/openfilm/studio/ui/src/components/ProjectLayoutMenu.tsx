@@ -1,12 +1,12 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Layers, MessageSquare, PanelBottom, PanelLeft, PanelRight, PanelsRightBottom } from 'lucide-react';
+import { AudioLines, Layers, MessageSquare, PanelBottom, PanelLeft, PanelRight, PanelsRightBottom } from 'lucide-react';
 import { useT } from '@/i18n';
 import { Tooltip } from './Tooltip';
 
 /** The top bar's Layout button: a small panel of switches that show or hide the Assets, Layers, Timeline and Inspector
     panes (and the host app's own panel, when there is one). */
-export function ProjectLayoutMenu({ className, assets, layers, timeline, inspector, onAssets, onLayers, onTimeline, onInspector, hostPanel }: {
+export function ProjectLayoutMenu({ className, assets, layers, timeline, inspector, onAssets, onLayers, onTimeline, onInspector, hostPanel, u3Library, onU3Library }: {
   className?: string;
   /** the app's own panel around Studio (lib/host.ts `panel`), switched here like Studio's own */
   hostPanel?: { label: string; open: boolean; onChange: (open: boolean) => void } | null;
@@ -19,6 +19,9 @@ export function ProjectLayoutMenu({ className, assets, layers, timeline, inspect
   onLayers: (open: boolean) => void;
   onTimeline: (open: boolean) => void;
   onInspector: (open: boolean) => void;
+  /** u3's sound effects (components/U3LibraryPanel) */
+  u3Library?: boolean;
+  onU3Library?: (open: boolean) => void;
 }) {
   const t = useT();
   const button = React.useRef<HTMLButtonElement>(null);
@@ -67,6 +70,7 @@ export function ProjectLayoutMenu({ className, assets, layers, timeline, inspect
         ['layers', t('layout.layers'), layers, onLayers, Layers] as const,
         ['timeline', t('layout.timeline'), timeline, onTimeline, PanelBottom] as const,
         ['inspector', t('layout.inspector'), inspector, onInspector, PanelRight] as const,
+        ...(onU3Library ? [['u3Library', t('u3Library.layout'), Boolean(u3Library), onU3Library, AudioLines] as const] : []),
       ].map(([key, label, checked, change, Icon]) => <button key={key} type="button" role="switch"
         aria-checked={checked} onClick={() => change(!checked)}
         className="flex w-full items-center gap-2.5 rounded-[7px] px-2 py-1.5 text-[13px] text-[var(--text)] hover:bg-[var(--bg-hover)] focus-visible:outline focus-visible:outline-[var(--border-strong)]">

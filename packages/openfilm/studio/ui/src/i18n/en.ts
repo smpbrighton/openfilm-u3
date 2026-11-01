@@ -1320,6 +1320,20 @@ export const en = {
     timeline: 'Timeline',
     inspector: 'Inspector',
   },
+  /* u3's bundled sound effects (components/U3LibraryPanel) */
+  u3Library: {
+    layout: 'u3 Library',
+    title: 'u3 Library',
+    hide: 'Hide u3 Library',
+    resize: 'Resize u3 Library',
+    search: 'Search sound effects',
+    category: 'Category',
+    all: 'All',
+    listen: 'Listen',
+    stop: 'Stop',
+    none: 'No sound effect matches.',
+    missing: 'There is no u3 library here. Set OPENFILM_U3_LIBRARY to the folder that has sfx/ in it, and open the project again.',
+  },
   timeline: {
     renameTrack: "Rename track",
     mediaMissing: 'Media not found',

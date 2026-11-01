@@ -87,6 +87,8 @@ import { useEditorTools } from './use-editor-tools';
 import { AudioMeters, METERS_W } from './AudioMeters';
 import { trackFlagStep, type SessionTimeline } from './OperationHistory';
 import { ProjectLayoutMenu } from './ProjectLayoutMenu';
+import { U3LibraryPane } from './U3LibraryPanel';
+import { placeU3Sfx } from '@/lib/u3-library';
 import { ProjectMenu } from './ProjectMenu';
 import { ProjectHistoryButton, ProjectHistoryControls } from './ProjectHistoryControls';
 import { useProjectHistory } from './use-project-history';
@@ -718,6 +720,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   const [assetsWidth, setAssetsWidth] = React.useState(280);
   /* the Layers panel (components/LayersPanel), left of the picture, after the assets */
   const [layersPaneOpen, setLayersPaneOpen] = useKeptFlag('openfilm.project.layers', false);
+  const [u3LibraryOpen, setU3LibraryOpen] = useKeptFlag('openfilm.project.u3library', false);
   const [layersWidth, setLayersWidth] = React.useState(240);
   const layersPaneRef = React.useRef<HTMLDivElement | null>(null);
   const [timelineOpen, setTimelineOpen] = useKeptFlag('openfilm.project.timeline');
@@ -1313,6 +1316,11 @@ export function ProjectView({ projectId, onProject, onLeave }: {
   const dropAsset = React.useCallback(async (file: ResourceDragItem, target: AssetDropTarget, atMs: number): Promise<string | null> => {
     const plan = assetDropInsert(file, timelineTracks, target, atMs, stageRef.current);
     if ('error' in plan) return plan.error === 'locked' ? t('timeline.trackLocked') : t('timeline.dropNotClip');
+    /* a sound of u3's library (lib/u3-library): put in the project first, then dropped as a file of it */
+    if (file.u3Library) {
+      const { u3Library: id, ...rest } = file;
+      try { return await dropAssetRef.current({ ...rest, path: await placeU3Sfx(projectId, id) }, target, atMs); } catch (e) { return e instanceof Error ? e.message : String(e); }
+    }
     /* a thing of Saved (lib/saved): brought into the project first (a file imported, a bundle's files copied in), then
        put where it was dropped: a file as a file of the project goes, a clip as it was saved */
     if (file.saved) {
@@ -3095,6 +3103,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
                 /* an app that keeps the media in its own panel opens it there, from its own button: not a pane of Studio's */
                 assets={hostAssets ? null : assetsPaneOpen} onAssets={setAssetsPaneOpen}
                 layers={layersPaneOpen} onLayers={setLayersPaneOpen}
+                u3Library={u3LibraryOpen} onU3Library={setU3LibraryOpen}
                 timeline={timelineOpen} inspector={inspectorOpen}
                 onTimeline={setTimelineOpen} onInspector={setInspectorOpen}
                 hostPanel={hostPanel ? { label: hostPanel.label, open: hostPanel.open, onChange: hostPanel.setOpen } : null} />
@@ -3157,6 +3166,7 @@ export function ProjectView({ projectId, onProject, onLeave }: {
                     }} />
                 </>
               ) : null}
+              {u3LibraryOpen ? <U3LibraryPane rowRef={viewerRowRef} onClose={() => setU3LibraryOpen(false)} /> : null}
 
               <div className={`${PANE} min-w-0 flex-1 bg-[var(--dock-pane)]`} data-viewer-pane="">
                 <div className={PANE_BAR}>

@@ -36,6 +36,8 @@ export interface ResourceDragItem {
   fps?: number;
   /** A saved thing (lib/saved), not a file of the project: its files are brought in as it lands. */
   saved?: string;
+  /** A sound of u3's library (lib/u3-library), by its id: put in the project as it lands. */
+  u3Library?: string;
 }
 
 const KINDS: readonly ResourceKind[] = ['video', 'image', 'audio', 'mg', 'other'];
@@ -104,6 +106,7 @@ function normalizeResourceDragItem(value: unknown): ResourceDragItem | null {
     ...(h === undefined ? {} : { h }),
     ...(fps === undefined ? {} : { fps }),
     ...(typeof item.saved === 'string' && item.saved ? { saved: item.saved } : {}),
+    ...(typeof item.u3Library === 'string' && item.u3Library ? { u3Library: item.u3Library } : {}),
   };
 }
 

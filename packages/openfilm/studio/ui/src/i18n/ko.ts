@@ -1316,6 +1316,20 @@ export const ko: Words = {
     timeline: '타임라인',
     inspector: '인스펙터',
   },
+  /* u3's bundled sound effects (components/U3LibraryPanel) */
+  u3Library: {
+    layout: 'u3 라이브러리',
+    title: 'u3 라이브러리',
+    hide: 'u3 라이브러리 숨기기',
+    resize: 'u3 라이브러리 크기 조절',
+    search: '효과음 검색',
+    category: '카테고리',
+    all: '전체',
+    listen: '듣기',
+    stop: '멈추기',
+    none: '맞는 효과음이 없습니다.',
+    missing: '여기에는 u3 라이브러리가 없습니다. OPENFILM_U3_LIBRARY 를 sfx/ 가 들어 있는 폴더로 정하고 프로젝트를 다시 여세요.',
+  },
   timeline: {
     renameTrack: "트랙 이름 바꾸기",
     mediaMissing: '미디어를 찾을 수 없음',
