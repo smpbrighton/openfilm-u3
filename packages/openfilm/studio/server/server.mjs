@@ -59,6 +59,7 @@ import { providersRoute } from './providers/index.mjs';
 import { captionRoutes, writeSubtitleStyle } from './captions.mjs';
 import { projectSettingsRoute } from './project-settings.mjs';
 import { markersRoute } from './markers.mjs';
+import { u3ProjectRoute, u3Route } from './u3-library.mjs';
 import { transitionPageRoutes } from './transition-pages.mjs';
 import { createAsks, getRoute, subtitleTranscriber, subtitleTranslator } from './get.mjs';
 import { LOCATION_KEYS, chooseFolder, locations, usableFolder } from '../../src/locations.mjs';
@@ -314,6 +315,8 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
     }
     /* ── own keys and who makes each kind of media (Settings → Providers): never a key back; see providers/index.mjs ── */
     if (parts[0] === 'providers') return providersRoute(req, res, parts.slice(1), { openBrowser });
+    /* u3's bundled library: its sound effects, and one played (u3-library.mjs) */
+    if (parts[0] === 'u3') return u3Route(req, res, parts.slice(1), url.searchParams);
     /* what the person changed in a project while an agent worked, kept over its writes: the note for the agent named
        `agent`, which its `openfilm` command prints, answered at once ({ id, line }, line null when nothing); it counts
        as told once the command says it printed it (POST kept/said { id }; person-edits.mjs) */
@@ -609,6 +612,8 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
     if (await projectSettingsRoute(req, res, project.path, rest)) return;
     /* its markers (markers.mjs): Studio's own, beside film.html */
     if (await markersRoute(req, res, project.path, rest)) return;
+    /* a sound of u3's library put in the project (u3-library.mjs) */
+    if (await u3ProjectRoute(req, res, project.path, rest)) return;
     /* the page under a dip to white, kept once (transition-pages.mjs) */
     if (await transitionPageRoutes(req, res, project.path, rest)) return;
     if (!rest) {

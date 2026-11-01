@@ -159,3 +159,27 @@ test('POST projects/:id/u3/library/place: its project path, the same one twice; 
   assert.equal(readFileSync(join(root, one.path), 'utf8'), 'sfx-d-pop');
   assert.equal((await place('../x')).status, 400);
 }));
+
+test('Studio answers the routes: the list, a sound, and one placed in a project', () => withLibrary(lib, async () => {
+  const { startStudio } = await import('./server.mjs');
+  const scratch = mkdtempSync(join(tmpdir(), 'of-u3-studio-'));
+  made.push(scratch);
+  const home = process.env.OPENFILM_HOME;
+  process.env.OPENFILM_HOME = join(scratch, 'home');
+  const studio = await startStudio({ port: 0, openBrowser: () => {}, quietMs: 150 });
+  try {
+    const api = (path, body) => fetch(`${studio.origin}${path}`, {
+      method: body ? 'POST' : 'GET', headers: { 'x-studio-key': studio.key, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined,
+    });
+    assert.equal((await (await api('/api/u3/library/sfx')).json()).items.length, 4);
+    assert.equal(await (await api('/api/u3/library/file?id=sfx-a-reveal')).text(), 'sfx-a-reveal');
+    const { project } = await (await api('/api/projects', { path: join(scratch, 'Film') })).json();
+    const placed = await (await api(`/api/projects/${project.id}/u3/library/place`, { id: 'sfx-a-reveal' })).json();
+    assert.deepEqual(placed, { path: 'assets/audio/sfx/sfx-a-reveal.mp3' });
+    assert.equal(readFileSync(join(scratch, 'Film', placed.path), 'utf8'), 'sfx-a-reveal');
+    assert.equal((await api(`/api/projects/${project.id}/u3/library/place`, { id: '../x' })).status, 400);
+  } finally {
+    await studio.close();
+    if (home === undefined) delete process.env.OPENFILM_HOME; else process.env.OPENFILM_HOME = home;
+  }
+}));
