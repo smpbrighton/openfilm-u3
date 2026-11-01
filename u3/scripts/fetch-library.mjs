@@ -24,9 +24,16 @@ export const MEMES = {
   sha256: '65aa3f9dc4f8c1378c71ac5e02426b48a2036cf494b9d37abd8c21e56c872a2f',
 };
 
+export const MEME_EMBED = {
+  repo: 'smpbrighton/openfilm-u3',
+  tag: 'library-meme-embed-1',
+  asset: 'u3-library-meme-embed-1.tar',
+  sha256: '4523572bb88d231d662a7d1ceac09a6543cfdab1a8761fd81cc4e6f9b45ca39a',
+};
+
 /** What a fetched folder keeps of where it came from. */
 const MARK = '.fetched';
-const mark = `${MEMES.tag} ${MEMES.asset} ${MEMES.sha256}\n`;
+
 
 /** @param {string} path @returns {Promise<string>} */
 function sha256(path) {
@@ -51,30 +58,40 @@ function count(dir) {
 }
 
 /** @param {string} library the folder `memes/` goes in @returns {Promise<'kept' | 'fetched'>} */
-export async function fetchMemes(library) {
-  const memes = join(library, 'memes');
+export const fetchMemes = (library) => fetchAsset(library, MEMES, 'memes');
+export const fetchMemeEmbed = (library) => fetchAsset(library, MEME_EMBED, 'meme-embed');
+
+/** @param {string} library @param {typeof MEMES} asset @param {string} folder */
+async function fetchAsset(library, asset, folder) {
+  const mark = `${asset.tag} ${asset.asset} ${asset.sha256}\n`;
+  const memes = join(library, folder);
   if (existsSync(join(memes, MARK)) && readFileSync(join(memes, MARK), 'utf8') === mark) {
-    console.log(`u3 memes: ${memes} is ${MEMES.tag} already (sha256 ${MEMES.sha256.slice(0, 12)}…), skipped`);
+    console.log(`u3 library: ${memes} is ${asset.tag} already (sha256 ${asset.sha256.slice(0, 12)}…), skipped`);
     return 'kept';
   }
   mkdirSync(library, { recursive: true });
   const work = mkdtempSync(join(library, '.fetch-'));
   try {
-    console.log(`u3 memes: downloading ${MEMES.asset} of ${MEMES.repo}@${MEMES.tag}`);
-    execFileSync('gh', ['release', 'download', MEMES.tag, '--repo', MEMES.repo, '--pattern', MEMES.asset, '--dir', work], { stdio: 'inherit' });
-    const tar = join(work, MEMES.asset);
+    console.log(`u3 library: downloading ${asset.asset} of ${asset.repo}@${asset.tag}`);
+    execFileSync('gh', ['release', 'download', asset.tag, '--repo', asset.repo, '--pattern', asset.asset, '--dir', work], { stdio: 'inherit' });
+    const tar = join(work, asset.asset);
     const got = await sha256(tar);
-    if (got !== MEMES.sha256) throw new Error(`u3 memes: ${MEMES.asset} has sha256 ${got}, not ${MEMES.sha256}`);
+    if (got !== asset.sha256) throw new Error(`u3 library: ${asset.asset} has sha256 ${got}, not ${asset.sha256}`);
     const unpacked = join(work, 'out');
     mkdirSync(unpacked);
     execFileSync('tar', ['-xf', tar, '-C', unpacked], { stdio: 'inherit' });
-    const fresh = join(unpacked, 'memes');
-    if (!existsSync(fresh)) throw new Error(`u3 memes: ${MEMES.asset} has no memes/ in it`);
-    const { mp4, json } = count(fresh);
+    const fresh = join(unpacked, folder);
+    if (!existsSync(fresh)) throw new Error(`u3 library: ${asset.asset} has no ${folder}/ in it`);
+    if (folder === 'meme-embed') {
+      const meta = JSON.parse(readFileSync(join(fresh, 'bge-m3.json'), 'utf8'));
+      const bytes = readFileSync(join(fresh, 'bge-m3.f32'));
+      if (meta.model !== 'bge-m3' || meta.dim !== 1024 || meta.items?.length !== 2195 || bytes.length !== meta.items.length * meta.dim * 4) throw new Error('u3 meme index: invalid dimensions or size');
+    }
+    const { mp4, json } = folder === 'memes' ? count(fresh) : { mp4: 0, json: 1 };
     writeFileSync(join(fresh, MARK), mark);
     rmSync(memes, { recursive: true, force: true });
     renameSync(fresh, memes);
-    console.log(`u3 memes: ${mp4} mp4 + ${json} json in ${memes}`);
+    console.log(`u3 library: ${mp4} mp4 + ${json} json in ${memes}`);
     return 'fetched';
   } finally {
     rmSync(work, { recursive: true, force: true });
@@ -84,7 +101,7 @@ export async function fetchMemes(library) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const at = process.argv.indexOf('--into');
   const library = at > 0 && process.argv[at + 1] ? resolve(process.argv[at + 1]) : resolve(dirname(fileURLToPath(import.meta.url)), '..', 'library');
-  fetchMemes(library).catch((error) => {
+  Promise.resolve().then(() => fetchMemes(library)).then(() => fetchMemeEmbed(library)).catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   });

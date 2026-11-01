@@ -38,3 +38,9 @@ u3 의 번들 라이브러리다. openfilm-u3 의 provider `u3-library` 와 Stud
 - 효과음 82개는 모두 myinstants.com 에서 받은 것이다. 사이드카의 `source` 가 원본 주소다.
 - 재배포 권리는 확인하지 않았다(`license: "myinstants"`). 공개 배포 전에 권리를 확인한다.
 - 짤은 giphy·tenor 에서 받은 것이다. 사이드카의 `sourceUrl` 이 원본 주소다. 재배포 권리는 확인하지 않았다. 공개 배포 전에 권리를 확인한다.
+
+## 짤 검색 색인
+- `meme-embed/bge-m3.json` 은 `{model, dim, items:[{id, docHash}]}` 이다. `bge-m3.f32` 는 같은 순서의 float32 행렬이다(2,195×1,024).
+- 비공개 prerelease `library-meme-embed-1` 의 `u3-library-meme-embed-1.tar` 에 두 파일만 있다. sha256 은 `4523572bb88d231d662a7d1ceac09a6543cfdab1a8761fd81cc4e6f9b45ca39a` 이다.
+- `fetch-library.mjs` 는 짤 다음에 색인을 받는다. tar 해시와 행렬 크기를 확인하고 `.fetched` 가 같으면 건너뛴다.
+- 색인은 u3 `src-tauri/resources/library/meme-embed/` 의 두 파일을 경로 `meme-embed/` 아래 이름순으로 묶었다. ustar, uid·gid·mtime 0, mode 0644다. 새 판은 새 태그로 올린다. 이전 Release 는 지우지 않는다.
