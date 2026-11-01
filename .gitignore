@@ -20,3 +20,5 @@ dist/
 # OS and editors
 .DS_Store
 *.log
+.env
+.agents/
