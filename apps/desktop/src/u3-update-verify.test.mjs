@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { createWindowsUpdateVerifier } from './u3-update-verify.mjs';
+import electronUpdater from 'electron-updater';
 
-const fixture = (name) => new URL(`./fixtures/u3-minisign/${name}`, import.meta.url);
+const fixture = (name) => new URL(`../fixtures/u3-minisign/${name}`, import.meta.url);
 const signature = readFileSync(fixture('prehashed.minisig'), 'utf8');
 const key = readFileSync(fixture('test.pub'), 'utf8');
 const feed = 'https://github.com/smpbrighton/u3-studio-releases/releases/latest/download';
@@ -47,4 +48,17 @@ test('installer selection matches the updater architecture and ignores the host 
   const state = setup({ files: [{ url: 'OpenFilm-Setup-arm64.exe' }, { url: 'https://example.invalid/build/OpenFilm-Setup-x64.exe' }] });
   assert.equal(await state.verify(), null);
   assert.deepEqual(state.urls, [`${feed}/OpenFilm-Setup-x64.exe.minisig`]);
+});
+
+test('the pinned NsisUpdater invokes the minisign hook when publisherName is set', async () => {
+  const updater = new electronUpdater.NsisUpdater(null, { version: '0.2.7' });
+  updater.logger = null;
+  updater.configOnDisk = { value: Promise.resolve({ publisherName: ['u3-minisign'] }) };
+  updater.verifyUpdateCodeSignature = createWindowsUpdateVerifier(updater, {
+    product: { desktop: { updates: feed, minisignPublicKey: key } }, arch: 'x64', fetch: async () => new Response(signature),
+  });
+  updater.emit('update-available', { version: '0.2.8', files: [{ url: 'OpenFilm-Setup-x64.exe' }] });
+  assert.equal(await updater.verifySignature(fixture('installer.bin')), null);
+  updater.emit('update-available', { version: '0.2.9', files: [{ url: 'OpenFilm-Setup-x64.exe' }] });
+  assert.match(await updater.verifySignature(fixture('installer.bin')), /version/);
 });

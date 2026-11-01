@@ -1,90 +1,86 @@
 name: desktop
-# The official desktop app (CONTRIBUTING.md, Releases): push the tag v<version> (the version every package has), or run
-# it by hand for an existing tag. Each target is built (the Macs signed and notarized), and a draft GitHub release gets
-# the installers and the update feeds. Publishing that release makes it the latest: the website's download links and
-# the apps' update checks go to the latest release's files (openfilm.dev/download/… redirects there).
-#
-# The secrets are in the `desktop-release` environment (Settings → Environments; deployments limited to v* tags):
-#   OPENFILM_SIGN_IDENTITY         the Developer ID Application identity, "Name (TEAMID)"
-#   APPLE_TEAM_ID                  its team
-#   MACOS_CERTIFICATE_P12_BASE64   that certificate with its private key, exported as .p12, base64
-#   MACOS_CERTIFICATE_PASSWORD     the .p12's password
-#   APPLE_API_KEY_BASE64           an App Store Connect API key (.p8, base64) for notarization
-#   APPLE_API_KEY_ID, APPLE_API_ISSUER_ID   its key id and issuer id
+# Build private source; publish only installers, feeds and signatures to the public releases repository.
+# Apple credentials remain in desktop-release. U3 secrets belong to the protected release environment.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: The release's tag (v<version>)
+        description: Existing source tag (v<version>)
         required: true
         type: string
+      mac_only:
+        description: Emergency Mac release without a Windows feed
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
   group: desktop-release
   cancel-in-progress: false
+env:
+  RELEASE_REPO: smpbrighton/u3-studio-releases
 jobs:
   plan:
-    if: github.repository == 'openfilm/openfilm'
+    if: github.repository == 'smpbrighton/openfilm-u3'
     runs-on: ubuntu-latest
-    environment: desktop-release
+    environment: release
     outputs:
       tag: ${{ steps.plan.outputs.tag }}
       version: ${{ steps.plan.outputs.version }}
-      signing: ${{ steps.plan.outputs.signing }}
+      commit: ${{ steps.plan.outputs.commit }}
+      mac_only: ${{ steps.plan.outputs.mac_only }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
       - id: plan
         env:
+          GH_TOKEN: ${{ secrets.U3_RELEASES_TOKEN }}
           TAG: ${{ inputs.tag || github.ref_name }}
-          SIGN_IDENTITY: ${{ secrets.OPENFILM_SIGN_IDENTITY }}
+          MAC_ONLY: ${{ inputs.mac_only || false }}
         run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           VERSION="${TAG#v}"
-          PACKAGE="$(node -p "require('./apps/desktop/package.json').version")"
-          if [ "$VERSION" != "$PACKAGE" ]; then
-            echo "::error::$TAG does not match apps/desktop/package.json ($PACKAGE)"
-            exit 1
+          [[ "$VERSION" == "$(node -p "require('./apps/desktop/package.json').version")" ]]
+          COMMIT="$(git rev-parse HEAD)"
+          [[ "$(git rev-parse "refs/tags/$TAG^{commit}")" == "$COMMIT" ]]
+          test -n "$GH_TOKEN"
+          if [[ "$MAC_ONLY" != true ]]; then
+            node -e "if (!require('./packages/openfilm/product.official.json').desktop.minisignPublicKey.trim()) process.exit(1)"
           fi
-          # without the signing secrets there is no official build here: a maintainer builds it on a Mac (CONTRIBUTING.md)
-          if [ -z "$SIGN_IDENTITY" ]; then
-            echo "::notice::The desktop-release secrets are not set: the installers for $TAG are built and uploaded by hand"
-            SIGNING=false
+          MARKER="Source commit: $COMMIT; mac_only: $MAC_ONLY"
+          if gh release view "$TAG" --repo "$RELEASE_REPO" --json isDraft,body > release.json 2>/dev/null; then
+            jq -e --arg marker "$MARKER" '.isDraft == true and (.body | contains($marker))' release.json > /dev/null
           else
-            SIGNING=true
+            # A failed create (including an existing public tag) stops the run; it never edits a public release.
+            printf 'u3 Studio %s.\n\n%s\n' "$VERSION" "$MARKER" > notes.md
+            if [[ "$MAC_ONLY" == true ]]; then
+              printf '\nEmergency Mac-only release. No Windows update is included.\n' >> notes.md
+            fi
+            gh release create "$TAG" --repo "$RELEASE_REPO" --draft --title "u3 Studio $VERSION" --notes-file notes.md
           fi
-          { echo "tag=$TAG"; echo "version=$VERSION"; echo "signing=$SIGNING"; } >> "$GITHUB_OUTPUT"
+          { echo "tag=$TAG"; echo "version=$VERSION"; echo "commit=$COMMIT"; echo "mac_only=$MAC_ONLY"; } >> "$GITHUB_OUTPUT"
 
-  build:
+  mac:
     needs: plan
-    if: needs.plan.outputs.signing == 'true'
-    name: build (${{ matrix.target }})
     runs-on: macos-14
+    timeout-minutes: 120
     environment: desktop-release
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - { target: mac-arm64, args: --arch=arm64, out: arm64, sign: true }
-          - { target: mac-x64, args: --arch=x64, out: x64, sign: true }
-          # NSIS, built on macOS as scripts/release.mjs expects; not code-signed yet
-          - { target: win-x64, args: --platform=win --arch=x64, out: win-x64, sign: false }
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.plan.outputs.tag }}
+          ref: ${{ needs.plan.outputs.commit }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-
       - name: Signing and notarization credentials, in a keychain of this run
-        if: matrix.sign
         env:
           MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -113,75 +109,139 @@ jobs:
           rm -f "$RUNNER_TEMP/AuthKey.p8"
           echo "APPLE_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
-      - name: Build (npm run release -- --official ${{ matrix.args }})
-        working-directory: apps/desktop
+      - name: Build and notarize both Mac targets
         env:
-          OPENFILM_SIGN_IDENTITY: ${{ matrix.sign && secrets.OPENFILM_SIGN_IDENTITY || '' }}
-          APPLE_TEAM_ID: ${{ matrix.sign && secrets.APPLE_TEAM_ID || '' }}
+          GH_TOKEN: ${{ github.token }}
+          OPENFILM_SIGN_IDENTITY: ${{ secrets.OPENFILM_SIGN_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           OPENFILM_NOTARY_PROFILE: openfilm-notary
-          SIGN: ${{ matrix.sign }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          COMMIT: ${{ needs.plan.outputs.commit }}
         run: |
-          # an official Mac build is signed and notarized, or not made
-          if [ "$SIGN" = "true" ] && { [ -z "$OPENFILM_SIGN_IDENTITY" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
-            echo "::error::OPENFILM_SIGN_IDENTITY and APPLE_TEAM_ID are not set in the desktop-release environment"
-            exit 1
-          fi
-          npm run release -- --official ${{ matrix.args }}
-
+          set -euo pipefail
+          test -n "$OPENFILM_SIGN_IDENTITY"
+          test -n "$APPLE_TEAM_ID"
+          mkdir upload
+          for arch in arm64 x64; do
+            (cd apps/desktop && npm run release -- --official --arch="$arch")
+            out="apps/desktop/.release/$arch/out"
+            cp "$out/latest-mac.yml" "upload/latest-$arch-mac.yml"
+            for file in "$out"/*.dmg "$out"/*.zip "$out"/*.blockmap; do
+              [[ ! -f "$file" ]] || cp "$file" upload/
+            done
+          done
+          node apps/desktop/scripts/u3-release.mjs fragment mac "$VERSION" "$COMMIT" upload
       - name: Remove the keychain
-        if: always() && matrix.sign
+        if: always()
         run: security delete-keychain "$RUNNER_TEMP/openfilm-signing.keychain-db" || true
-
       - uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.target }}
+          name: desktop-mac
+          path: upload/*
           if-no-files-found: error
           retention-days: 14
-          path: |
-            apps/desktop/.release/${{ matrix.out }}/out/*.dmg
-            apps/desktop/.release/${{ matrix.out }}/out/*.zip
-            apps/desktop/.release/${{ matrix.out }}/out/*.exe
-            apps/desktop/.release/${{ matrix.out }}/out/*.blockmap
-            apps/desktop/.release/${{ matrix.out }}/out/latest*.yml
 
-  github-release:
-    needs: [plan, build]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  windows:
+    needs: plan
+    if: needs.plan.outputs.mac_only != 'true'
+    # Preserve the existing NSIS cross-build on macOS; minisign needs no Windows certificate.
+    runs-on: macos-14
+    timeout-minutes: 90
+    environment: release
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.plan.outputs.tag }}
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: brew install minisign
+      - name: Build Windows installer
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run release -- --official --platform=win --arch=x64
+      - name: Sign Windows installer and bind its version
+        env:
+          U3_WINDOWS_MINISIGN_KEY: ${{ secrets.U3_WINDOWS_MINISIGN_KEY }}
+          U3_WINDOWS_MINISIGN_PASSWORD: ${{ secrets.U3_WINDOWS_MINISIGN_PASSWORD }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          COMMIT: ${{ needs.plan.outputs.commit }}
+        run: |
+          set +x
+          set -euo pipefail
+          umask 077
+          test -n "$U3_WINDOWS_MINISIGN_KEY"
+          test -n "$U3_WINDOWS_MINISIGN_PASSWORD"
+          KEY_FILE="$RUNNER_TEMP/u3-windows-minisign.key"
+          trap 'rm -f "$KEY_FILE"' EXIT
+          printf '%s\n' "$U3_WINDOWS_MINISIGN_KEY" > "$KEY_FILE"
+          mkdir upload
+          out=apps/desktop/.release/win-x64/out
+          for file in "$out"/*.exe; do
+            comment="$(printf 'version:%s\tfile:%s' "$VERSION" "${file##*/}")"
+            printf '%s\n' "$U3_WINDOWS_MINISIGN_PASSWORD" | minisign -S -s "$KEY_FILE" -m "$file" -t "$comment" > /dev/null
+            cp "$file" "$file.minisig" upload/
+          done
+          for file in "$out"/*.blockmap; do
+            [[ ! -f "$file" ]] || cp "$file" upload/
+          done
+          cp "$out/latest.yml" upload/latest-win-x64.yml
+          node apps/desktop/scripts/u3-release.mjs fragment windows "$VERSION" "$COMMIT" upload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: upload/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [plan, mac, windows]
+    if: >-
+      always() && needs.plan.result == 'success' && needs.mac.result == 'success' &&
+      (needs.windows.result == 'success' || (needs.plan.outputs.mac_only == 'true' && needs.windows.result == 'skipped'))
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
           pattern: desktop-*
-          path: artifacts
-      - name: A draft release with the installers and the feeds
+          path: upload
+          merge-multiple: true
+      - name: Validate fragments and publish the draft
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.U3_RELEASES_TOKEN }}
           TAG: ${{ needs.plan.outputs.tag }}
           VERSION: ${{ needs.plan.outputs.version }}
+          COMMIT: ${{ needs.plan.outputs.commit }}
+          MAC_ONLY: ${{ needs.plan.outputs.mac_only }}
         run: |
-          mkdir upload
-          for dir in artifacts/desktop-*; do
-            target="${dir#artifacts/desktop-}"
-            for f in "$dir"/*; do
-              case "$f" in
-                # each target has its own feed: latest-mac.yml becomes latest-mac-arm64.yml, latest.yml latest-win-x64.yml
-                */latest-mac.yml) cp "$f" "upload/latest-mac-${target#mac-}.yml" ;;
-                */latest.yml) cp "$f" "upload/latest-${target}.yml" ;;
-                *) cp "$f" upload/ ;;
-              esac
-            done
-          done
-          ls -l upload
-          # the changelog's entry for this version, if there is one
-          awk -v v="## $VERSION" '$0 == v { on = 1; next } /^## / { on = 0 } on' packages/openfilm/CHANGELOG.md > notes.md 2>/dev/null || true
-          [ -s notes.md ] || echo "OpenFilm $VERSION." > notes.md
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" upload/* --clobber
-          else
-            gh release create "$TAG" upload/* --draft --verify-tag --title "OpenFilm $VERSION" --notes-file notes.md
-          fi
-
+          set -euo pipefail
+          extra=()
+          [[ "$MAC_ONLY" != true ]] || extra+=(--mac-only)
+          node apps/desktop/scripts/u3-release.mjs check "$VERSION" "$COMMIT" upload "${extra[@]}"
+          assert_draft() {
+            gh release view "$TAG" --repo "$RELEASE_REPO" --json isDraft,body |
+              jq -e --arg marker "Source commit: $COMMIT; mac_only: $MAC_ONLY" '.isDraft == true and (.body | contains($marker))' > /dev/null
+          }
+          assert_draft
+          gh release upload "$TAG" upload/* --repo "$RELEASE_REPO" --clobber
+          # Re-read the remote bytes, including old leftovers from a failed attempt, before making it latest.
+          mkdir downloaded
+          gh release download "$TAG" --repo "$RELEASE_REPO" --dir downloaded
+          node apps/desktop/scripts/u3-release.mjs check "$VERSION" "$COMMIT" downloaded "${extra[@]}"
+          cmp upload/SHA256SUMS.txt downloaded/SHA256SUMS.txt
+          assert_draft
+          gh release edit "$TAG" --repo "$RELEASE_REPO" --draft=false --latest

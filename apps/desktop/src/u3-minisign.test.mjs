@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { verifyMinisign, verifyMinisignFile, signedVersion } from './u3-minisign.mjs';
 
-const fixture = (name) => new URL(`./fixtures/u3-minisign/${name}`, import.meta.url);
+const fixture = (name) => new URL(`../fixtures/u3-minisign/${name}`, import.meta.url);
 const bytes = readFileSync(fixture('installer.bin'));
 const key = readFileSync(fixture('test.pub'), 'utf8');
 const signature = readFileSync(fixture('prehashed.minisig'), 'utf8');

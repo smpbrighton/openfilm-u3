@@ -4,6 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readUpdateChannel, useUpdateChannel, writeUpdateChannel } from './update-channel.mjs';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { Provider } = require('electron-updater/out/providers/Provider.js');
 
 test('the channel is stable until beta is chosen, and stays chosen', () => {
   const dir = mkdtempSync(join(tmpdir(), 'openfilm-channel-'));
@@ -28,5 +32,7 @@ test('beta reads the beta feed file, stable the latest one, and neither allows a
     assert.deepEqual([updater.channel, updater.allowDowngrade], [`beta-${suffix}`, false]);
     useUpdateChannel(updater, 'stable', { platform, arch });
     assert.deepEqual([updater.channel, updater.allowDowngrade], [`latest-${suffix}`, false]);
+    const provider = new Provider({ platform });
+    assert.equal(`${provider.getCustomChannelName(updater.channel)}.yml`, platform === 'darwin' ? `latest-${arch}-mac.yml` : `latest-win-${arch}.yml`);
   }
 });
