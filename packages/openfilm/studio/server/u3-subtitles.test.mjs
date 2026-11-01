@@ -109,3 +109,17 @@ test('a layer page is laid out at the film\'s own stage: a landscape film gets a
   assert.match(html, /width:\s*1920,\s*height:\s*1080/, 'window.film says the stage');
   assert.doesNotMatch(html, /1080px;\s*height:\s*1920px|width:\s*1080,\s*height:\s*1920/, 'nothing of the portrait template is left');
 });
+
+test('with subtitle clips Studio draws no cues, but what is not transcribed yet is still listed, for 자막 만들기', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'of-u3-subtitles-asr-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, 'film.html'), filmHtml({ stage: { w: 1920, h: 1080 }, tracks: [{ clips: [{ id: 'voice', src: 'voice.mp3', time: [0, 4] }] }] }));
+  await writeFile(join(root, 'voice.mp3'), 'not really audio');
+  await writeFile(join(root, 'input.vtt'), vtt);
+  const before = await filmCaptions(root, { duration: async () => 4 });
+  assert.deepEqual(before.untranscribed, ['voice.mp3'], 'the recording is waiting for its transcript');
+  await importSubtitles(root, { src: 'input.vtt' });
+  const after = await filmCaptions(root, { duration: async () => 4 });
+  assert.deepEqual(after.cues, [], 'no Studio cues beside the subtitle clips');
+  assert.deepEqual(after.untranscribed, ['voice.mp3'], '자막 만들기 still finds the recording');
+});
