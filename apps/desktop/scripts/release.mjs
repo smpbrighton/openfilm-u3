@@ -121,6 +121,9 @@ const { ffmpegDownloadable, fetchFfmpeg } = await import(pathToFileURL(join(desk
 const platform = win ? 'win32' : 'darwin';
 if (ffmpegDownloadable(platform, arch)) await fetchFfmpeg(join(runtime, 'ffmpeg'), { platform, arch, license: true });
 else console.warn(`No ffmpeg build for ${platform}-${arch}: this app downloads none either; people install their own.`);
+const { whisperDownloadable, fetchWhisper } = await import(pathToFileURL(join(desktop, 'src/u3-whisper-runtime.mjs')).href);
+if (whisperDownloadable(platform, arch)) await fetchWhisper(join(runtime, 'whisper'), { platform, arch });
+else console.warn(`No whisper-cli build for ${platform}-${arch}: local ASR needs OPENFILM_U3_WHISPER_CLI or whisper-cli on PATH.`);
 run(process.execPath, [join(stage, 'node_modules/playwright-core/cli.js'), 'install', 'chromium-headless-shell'], {
   env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright'), PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: win ? 'win64' : arch === 'arm64' ? 'mac15-arm64' : 'mac15' },
 });

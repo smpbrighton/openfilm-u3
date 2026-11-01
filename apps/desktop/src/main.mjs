@@ -483,6 +483,10 @@ async function start() {
   if (ffmpegHere) env.PATH = [ffmpegHere, env.PATH].join(PATH_SEP);
   const browsers = runtime && existsSync(join(runtime, 'ms-playwright')) ? { PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright') } : {};
   Object.assign(env, browsers);
+  /* The release download checks SHA-256. App signing can change Mach-O bytes afterwards. */
+  const whisper = runtime && existsSync(join(runtime, 'whisper', 'whisper-cli'))
+    ? { OPENFILM_U3_WHISPER_CLI: join(runtime, 'whisper', 'whisper-cli') } : {};
+  Object.assign(env, whisper);
   /* u3's bundled library (scripts/release.mjs), for Studio's u3 Library (studio/server/u3-library.mjs) */
   if (runtime && existsSync(join(process.resourcesPath, 'u3-library'))) env.OPENFILM_U3_LIBRARY = join(process.resourcesPath, 'u3-library');
   if (runtime && existsSync(join(process.resourcesPath, 'u3-skills'))) env.OPENFILM_U3_SKILLS = join(process.resourcesPath, 'u3-skills');
@@ -601,7 +605,7 @@ async function start() {
     onConnectionResult: (id, error) => roster?.recordConnectionResult(id, error),
     /* the `openfilm` command first (with the app's ffmpeg and browser in it); the app's ffmpeg last, for a computer
        that has none of its own: the person's own ffmpeg and browsers are what the agent's commands use */
-    binDir: installOpenfilmCommand(DATA, { ffmpeg: ffmpegHere, env: browsers }),
+    binDir: installOpenfilmCommand(DATA, { ffmpeg: ffmpegHere, env: { ...browsers, ...whisper } }),
     fallbackDir: ffmpegHere,
     env: {
       OPENFILM_HOME: env.OPENFILM_HOME,
