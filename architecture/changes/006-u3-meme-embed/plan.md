@@ -53,3 +53,10 @@ Track: lite.
 - 패널의 새 버튼과 상태 문구는 승인된 한국어 문구를 사용한다. i18n 파일은 이 변경의 파일 목록에 없어 수정하지 않았다. 다른 언어에서도 새 문구는 한국어다.
 - 사용자의 작업 경계에 따라 merge·push·다른 worktree 수정은 하지 않는다. Windows와 공증된 패키지 빌드는 검증하지 않는다. impl-report.md는 요청대로 커밋하지 않는다.
 - 최종 검증은 대상 node 테스트 56건·typecheck·architecture lint를 통과했다. `pnpm run verify`는 마지막에 한 번 실행해 exit 0, 마지막 줄 `✓ verify passed`였다(openfilm 1,566건, shared 20건, desktop 403건 통과, 실패 0건, 건너뜀 7건).
+
+## 세션 검토
+- `pnpm run verify`: exit 0, `✓ verify passed`(통과 1,989, 실패 0). 대상 테스트 56건.
+- 관문: dev 데스크톱(Electron 44.9.3) Studio utilityProcess 에서 ONNX Runtime 1.22.0 로드, 「황당한 표정」 질의 1,024차원 벡터, 같은 질의 같은 결과, 규칙 결과와 다름, 모델 없을 때 규칙 순서 그대로이며 스스로 받지 않음. 패널 받기 버튼·진행률·「켜짐」을 Aside 로 확인. 증거는 워크트리 `.dev/u3-meme-embed-evidence/`(커밋하지 않음).
+- 색인 asset: 비공개 prerelease `library-meme-embed-1`, `u3-library-meme-embed-1.tar` 9,123,840 B, sha256 `4523572b…c39a`.
+- 세션이 고친 것: 패널의 새 문구 6개가 하드코딩된 한국어였다. 기존 패널처럼 `u3Library` i18n 키(en·ko)로 옮겼다.
+- 미검증: Windows, 공증된 패키지 빌드·설치.
