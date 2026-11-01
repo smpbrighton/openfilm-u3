@@ -9,7 +9,7 @@
 import { readFile } from 'node:fs/promises';
 import { landing, needed, notes, number, text } from './common.mjs';
 import { FILM_FILE } from '../../../src/film-doc.mjs';
-import { MEME_EMOTIONS, libraryDir, listMemes, listSfx, matchMemes, memesInFilm, noLibrary, noMemes, rankSfx } from '../u3-library.mjs';
+import { MEME_EMOTIONS, libraryDir, listMemes, listSfx, rankMemes, memesInFilm, noLibrary, noMemes, rankSfx } from '../u3-library.mjs';
 
 /** @typedef {import('./contract.mjs').Provider} Provider */
 
@@ -75,8 +75,8 @@ async function meme(args, ctx) {
   try { film = new TextDecoder().decode(await ctx.read(FILM_FILE)); } catch { /* no film yet: nothing is used */ }
   const used = film ? await memesInFilm(ctx.root, film, items) : [];
   const visual = { query: prompt, ...(reaction ? { reaction } : {}) };
-  const ranked = matchMemes(visual, items, CANDIDATES, { exclude: used });
-  if (!ranked[0]?.score) {
+  const ranked = await rankMemes(visual, items, CANDIDATES, { exclude: used }, dir);
+  if (!ranked[0]?.score && ranked[0]?.sim === undefined) {
     throw new Error(`Nothing in the u3 library fits "${prompt}"${used.length ? ` that the film does not use already (${used.length} used)` : ''}: describe the scene with a feeling, or name one with --reaction (${Object.values(MEME_EMOTIONS).join(', ')}).`);
   }
   const best = ranked[0].meme;
@@ -92,7 +92,7 @@ async function meme(args, ctx) {
     receipt: {
       provider: 'u3-library', id: best.id, emotion: best.emotion, description: best.description, src: path, dur, width, height,
       ...(used.length ? { excluded: used } : {}),
-      candidates: ranked.map(({ meme: m, score }) => ({ id: m.id, emotion: m.emotion, score })),
+      candidates: ranked.map(({ meme: m, score, sim }) => ({ id: m.id, emotion: m.emotion, score, ...(sim !== undefined ? { sim } : {}) })),
     },
   };
 }

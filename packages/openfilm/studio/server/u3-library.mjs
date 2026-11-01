@@ -22,6 +22,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HttpError, json, readJson } from './http.mjs';
 import { bringIn, inside } from './files.mjs';
+import { memeSearchService, mergeCandidates } from './u3-meme-embed.mjs';
 import { kindOf, readFilmFile } from '../../src/film-doc.mjs';
 
 /** @typedef {import('./http.mjs').Req} Req @typedef {import('./http.mjs').Res} Res */
@@ -147,6 +148,27 @@ export function matchMemes(visual, memes, limit = 3, opts = {}) {
   const recent = new Set(opts.recent ?? []);
   return memes.filter((item) => !exclude.has(item.id)).map((meme) => ({ meme, score: scoreMeme(visual, meme) - (recent.has(meme.id) ? 6 : 0) }))
     .sort((a, b) => b.score - a.score || b.meme.importedAt.localeCompare(a.meme.importedAt) || a.meme.id.localeCompare(b.meme.id)).slice(0, Math.max(0, limit));
+}
+
+/** Both the provider and the panel use this order: bge top 40, then rule top 10, without duplicates.
+ * Missing/unusable local search preserves the previous rule ranking and the caller's limit.
+ * @template {{ id: string, emotion: string, situations: readonly string[], tagsConfirmed?: boolean, description?: string, importedAt: string }} T
+ * @param {{ query: string, reaction?: string }} visual @param {readonly T[]} memes @param {number} [limit]
+ * @param {{ exclude?: Iterable<string>, recent?: Iterable<string> }} [opts]
+ * @param {string} [dir] @param {ReturnType<typeof memeSearchService>} [search]
+ * @returns {Promise<{ meme: T, score: number, sim?: number }[]>}
+ */
+export async function rankMemes(visual, memes, limit = memes.length, opts = {}, dir = libraryDir(), search = memeSearchService()) {
+  const rule = matchMemes(visual, memes, memes.length, opts);
+  const text = visual.reaction ? `${visual.reaction}: ${visual.query}` : visual.query;
+  const excluded = new Set(opts.exclude ?? []);
+  const available = memes.filter((m) => !excluded.has(m.id));
+  const embedded = /** @type {{ id: string, sim: number }[] | null} */ (await search.search(text, available, dir));
+  if (!embedded) return rule.slice(0, limit);
+  const byId = new Map(rule.map((r) => [r.meme.id, r]));
+  const similarities = new Map(embedded.map((r) => [r.id, r.sim]));
+  return mergeCandidates(embedded.map((r) => r.id), rule.slice(0, 10).map((r) => r.meme.id))
+    .flatMap((id) => { const row = byId.get(id); return row ? [{ ...row, ...(similarities.has(id) ? { sim: similarities.get(id) } : {}) }] : []; }).slice(0, limit);
 }
 
 /* ── where the library is, and what is in it ── */
@@ -401,6 +423,15 @@ function kindAsked(kind) {
  */
 export async function u3Route(req, res, parts, query) {
   const dir = libraryDir();
+  if (parts.join('/') === 'models/bge-m3') {
+    const service = memeSearchService();
+    if (req.method === 'GET') return json(res, 200, await service.status());
+    if (req.method === 'POST') {
+      if (!(await service.status()).available) throw new HttpError(409, '정확한 검색은 desktop 앱에서 사용할 수 있습니다');
+      void service.download().catch(() => {});
+      return json(res, 202, await service.status());
+    }
+  }
   if (parts[0] === 'library' && parts[1] === 'sfx' && parts.length === 2 && req.method === 'GET') {
     const items = await listSfx(dir);
     if (!items) return json(res, 200, { dir: null, items: [] });
@@ -418,7 +449,7 @@ export async function u3Route(req, res, parts, query) {
     const emotion = query.get('emotion') ?? '';
     const q = (query.get('q') ?? '').trim();
     const of = emotion ? items.filter((i) => i.emotion === emotion) : items;
-    const found = q ? matchMemes({ query: q }, of, of.length).filter((r) => r.score > 0).map((r) => r.meme) : of;
+    const found = q ? (await rankMemes({ query: q }, of, of.length, {}, dir)).filter((r) => r.sim !== undefined || r.score > 0).map((r) => r.meme) : of;
     const page = found.slice(offset, offset + limit);
     const next = offset + page.length < found.length ? offset + page.length : null;
     return json(res, 200, { dir, items: page.map(shownMeme), total: found.length, next });
