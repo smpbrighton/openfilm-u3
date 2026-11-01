@@ -41,3 +41,13 @@ Track: lite.
 - `pnpm run verify`.
 ### 롤백
 병합 revert. 받은 모델은 `~/.openfilm/u3/models` 에 남는다.
+
+## 구현에서 달라진 것
+- 빌드 스크립트는 u3의 Mac arm64 부분만 옮겼다. Tauri 경로 대신 이 worktree의 `.dev/whisper-build/out/`에 바이너리와 LICENSE를 쓴다. `OPENFILM_U3_BUILD_CACHE`로 위치를 바꾼다.
+- 비공개 prerelease `whisper-cli-1.9.5`의 asset은 `whisper-cli-darwin-arm64`(8,033,032 B, SHA-256 `355c1791326a6dda1daebdd6a2b06bf127ad085cf021f5bb021bbbd652bed14b`)와 `LICENSE`(1,078 B, SHA-256 `94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d`)다. runtime 모듈은 비공개 asset을 `gh`로 받는다. `GH_TOKEN` 또는 `smpbrighton` 계정 인증을 사용하며 토큰을 출력하지 않는다.
+- 기존 `extraResources`의 `runtime` 항목이 `runtime/whisper`도 포함하므로 항목을 추가하지 않았다. 다운로드 때 바이너리와 LICENSE의 해시를 확인한다. 앱 시작 때는 실행 파일의 존재를 확인한다. 앱 서명이 Mach-O 바이트를 바꾸기 때문이다. Studio와 데스크톱 에이전트의 `openfilm` 명령 모두 실행 파일 경로를 받는다.
+- VAD 크기도 885,098 B로 고정했다. 모델 다운로드가 중단되면 `.part`를 보관하고, 완성된 `.part`는 요청 없이 검사한다. 서버가 Range를 무시하면 처음부터 받는다. 잘못된 Range는 거부한다. 같은 모델 경로의 동시 요청은 받기 작업을 공유한다.
+- 파서는 u3의 segment offsets를 사용한다. 빈 항목·유효하지 않은 시각·0 길이 항목과 `[_TT_530]` 같은 특수 토큰도 버린다. 음성은 메모리로 읽지 않고 WAV 파일로 변환한다. WAV 길이는 헤더만 읽어 구한다.
+- `get.mjs`와 `captions.mjs`는 수정하지 않았다. 기존 ASR landing·skip·force·Studio transcribe 경로를 그대로 사용한다. `get.test.mjs`에 한국어 VTT·skip·force 통합 검증을 추가했다.
+- 실제 검증 모델과 프로젝트는 다른 checkout과 사용자 상태를 건드리지 않도록 이 worktree의 `.dev/u3-whisper-evidence/`에 두었다. 4848 포트가 사용 중이어서 개발 Studio는 64112에서 실행했다. Aside가 4848에서 읽은 것은 인증 오류뿐이며 설정을 바꾸지 않았다. 지정한 Studio에서 로컬 안내·키 없는 재연결·모델 선택·자막 생성을 확인했다.
+- Windows 실행과 데스크톱 설치 파일 전체 빌드는 검증하지 않았다. merge·push와 다른 변경의 Jira·wiki 갱신은 이 구현 지시의 범위 밖이므로 수행하지 않는다.
