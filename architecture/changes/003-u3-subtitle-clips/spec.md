@@ -80,4 +80,4 @@ Source: intent.md (accepted). Status: accepted.
 3. pop 효과 클립 하나를 둔 film 을 `openfilm look <film> <클립 시작+0.15>` 로 그려 글 크기가 0.9 배 근처다.
 4. Studio(Aside): 자막 클립을 고르면 인스펙터에 메인·서브·효과·색·크기·강조색이 보이고, 고치면 미리보기에 반영된다.
 5. `*강조*` 가 들어간 클립을 `openfilm render` 로 그려 첫 프레임에 별표가 보이지 않는다(우려 사항 2).
-6. 같은 film 의 세 시각에서 Studio 미리보기 프레임과 render mp4 프레임을 비교한다. 픽셀 차이 평균이 2% 이하다.
+6. 같은 film 의 세 시각에서 Studio 미리보기 프레임과 render mp4 프레임을 비교한다. 자막 상자 영역의 픽셀 차이 평균이 같은 프레임의 openfilm 기존 페이지 글 영역 차이와 같은 크기다(render 의 배경 색 차이와 글 가장자리 재표본은 openfilm render 전체의 성질이다).
