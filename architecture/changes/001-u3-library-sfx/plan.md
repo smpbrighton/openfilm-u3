@@ -83,3 +83,17 @@ INTENT 기대 결과 1번: 번들 효과음을 `openfilm get sfx` 와 Studio 패
 
 ## 롤백
 새 파일과 등록 줄만 더한다. 데이터 형식 변경이 없다. 되돌리기는 병합 커밋 revert 하나다. 이미 프로젝트로 복사된 효과음 파일은 일반 assets 파일로 남는다.
+
+## 구현에서 달라진 것
+- `studio/ui/src/lib/provider-marks.ts` 에 마크 하나를 더했다. 기존 테스트가 provider 마다 마크를 요구한다.
+- `resource-drag.ts` 의 normalize 에 `u3Library` 한 줄을 더했다. 없으면 drop 때 값이 사라진다.
+- 패널 폭과 `PaneDivider` 는 `U3LibraryPane` 이 갖는다. `ProjectView.tsx` 의 삽입은 import 2줄, 상태 1줄, 메뉴 prop 1줄, 마운트 1줄, `dropAsset` 분기다.
+- API 호출 함수는 `lib/u3-library.ts` 에 둔다.
+- 1위 점수가 0 이면 파일을 내지 않고 카테고리 목록을 담은 오류를 낸다. prompt 와 무관한 파일을 넣지 않기 위해서다.
+- provider `env` 는 `OPENFILM_U3_LIBRARY_KEY` 다. 라이브러리 위치 변수와 이름을 나눠, 위치를 정하는 것만으로 연결되지 않게 한다. `keysUrl`·`billingUrl` 이 비어 설정 화면의 「키 추가」 버튼이 쓸모없다. whisper asr 변경에서 keyless 문구와 함께 고친다.
+
+## 확인 결과
+- 작업자 실행 `pnpm run verify`: exit 0, `✓ verify passed`.
+- Studio 수동(Aside): 설정에서 u3 Library 연결됨, 패널 82개 표시, shock 미리 듣기, 같은 효과음을 A1·A2 두 트랙에 놓음(같은 파일 재사용).
+- CLI: `get sfx --via u3-library --out boom --prompt 놀람` exit 0, `assets/audio/sfx/boom.mp3`. `--prompt 날씨` exit 1, 카테고리 안내.
+- 미검증: 데스크톱 패키지 빌드의 `resources/u3-library`. 릴리스 변경에서 확인한다.
