@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdirSync, mkdtempSync, writeFileSync, existsSync, readFileSync, symlinkSync, lstatSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync, existsSync, readFileSync, symlinkSync, lstatSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addSkills, findSkill, listSkills, migrateMySkills, mySkillsDir, parseSkillFile, readSkill, removeSkill, setSkillCover, setSkillInstalled, setSkillOn, skillOrigins, skillText } from './skills.mjs';
+import { addSkills, findSkill, listSkills, migrateMySkills, mySkillsDir, parseSkillFile, readSkill, removeSkill, setSkillCover, setSkillInstalled, setSkillOn, skillOrigins, skillText, u3SkillsDir, usableSkills } from './skills.mjs';
 import { commitSkills, discardSkills, previewFolder, previewSkills, skillCommand, skillsCommand } from './skills-cli.mjs';
+import { startStudio } from '../studio/server/server.mjs';
 
 const skill = (dir, name, description, body = 'How to make it.', extra = {}) => {
   mkdirSync(dir, { recursive: true });
@@ -17,6 +18,42 @@ const skill = (dir, name, description, body = 'How to make it.', extra = {}) => 
 };
 
 const coverPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+
+test('u3 workflows are listed and usable, respect source precedence and on/off, and reject install/remove', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'of-u3-skills-'));
+  const bundled = u3SkillsDir();
+  const vars = { OPENFILM_HOME: join(root, 'home'), OPENFILM_SHARED_HOME: join(root, 'shared'), OPENFILM_SKILLS: join(root, 'mine'), OPENFILM_LIBRARY: join(root, 'projects'), OPENFILM_U3_SKILLS: bundled };
+  const previous = Object.fromEntries(Object.keys(vars).map(k => [k, process.env[k]]));
+  Object.assign(process.env, vars);
+  t.after(() => {
+    for (const [k, value] of Object.entries(previous)) { if (value === undefined) delete process.env[k]; else process.env[k] = value; }
+    rmSync(root, { recursive: true, force: true });
+  });
+  const where = { mine: vars.OPENFILM_SKILLS, official: join(root, 'official') };
+  assert.deepEqual(listSkills(where).map(s => [s.name, s.source]), [['u3-media', 'u3'], ['u3-subtitles', 'u3']]);
+  assert.equal(usableSkills(where).length, 2);
+  const before = readFileSync(join(bundled, 'u3-subtitles/SKILL.md'), 'utf8');
+  assert.ok(skillsCommand('openfilm', { cwd: root }).lines.some(l => /u3-subtitles\s+u3/.test(l)));
+  const studio = await startStudio({ port: 0, openBrowser: () => {} });
+  t.after(() => studio.close());
+  for (const [suffix, method, body] of [['', 'DELETE'], ['/installed', 'PUT', { installed: false }]]) {
+    const res = await fetch(`${studio.origin}/api/skills/u3-subtitles${suffix}`, { method, headers: { 'x-studio-key': studio.key, 'content-type': 'application/json' }, body: body && JSON.stringify(body) });
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).error, /read-only/);
+  }
+  setSkillOn('u3-subtitles', false);
+  assert.deepEqual(usableSkills(where).map(s => s.name), ['u3-media']);
+  setSkillOn('u3-subtitles', true);
+  assert.equal(readFileSync(join(bundled, 'u3-subtitles/SKILL.md'), 'utf8'), before);
+  skill(join(where.official, 'u3-subtitles'), 'u3-subtitles', 'Official override');
+  assert.equal(findSkill('u3-subtitles', where).source, 'official');
+  assert.deepEqual(findSkill('u3-subtitles', where).over, ['u3']);
+  const other = join(root, 'other-u3');
+  skill(join(other, 'custom-u3'), 'custom-u3', 'Bundled elsewhere');
+  process.env.OPENFILM_U3_SKILLS = other;
+  assert.equal(u3SkillsDir(), other);
+  assert.equal(findSkill('custom-u3', where).source, 'u3');
+});
 
 test('cover edits do not follow a personal skill folder outside its library or write through metadata symlinks', () => {
   const root = mkdtempSync(join(tmpdir(), 'of-skill-cover-links-'));
@@ -111,7 +148,7 @@ test('skills are listed from the project, then yours, then the official ones, th
   skill(join(mine, 'lyric-pv'), 'lyric-pv', 'Lyric videos', 'Use the engine.', { 'scripts/build.sh': 'echo', 'lib/engine.js': '' });
   skill(join(official, 'brand'), 'brand', 'Official brand');
   mkdirSync(join(mine, 'not-a-skill'), { recursive: true });
-  const all = listSkills({ project, mine, official });
+  const all = listSkills({ project, mine, official, u3: join(root, 'none') });
   assert.deepEqual(all.map((s) => [s.name, s.source, s.description]), [['brand', 'project', 'This film\'s brand'], ['lyric-pv', 'mine', 'Lyric videos']]);
   assert.deepEqual(all[0].over, ['mine', 'official']);
   assert.deepEqual(all[1].scripts, ['lib/engine.js', 'scripts/build.sh'], 'what an agent could run, for the person to see');
@@ -183,7 +220,7 @@ test('adding from an address is looked at first: kept, or let go', async () => {
   const seen = await previewSkills('https://github.com/x/y', { mine, fetch });
   assert.deepEqual(seen.skills.map((s) => [s.name, s.replaces, s.scripts.length]).sort(), [['charts', false, 0], ['lyric-pv', true, 1]]);
   assert.ok(seen.skills.every((s) => s.size > 0));
-  assert.deepEqual(listSkills({ mine, official: join(root, 'none') }).map((s) => s.description), ['Mine'], 'nothing kept yet');
+  assert.deepEqual(listSkills({ mine, official: join(root, 'none'), u3: join(root, 'none') }).map((s) => s.description), ['Mine'], 'nothing kept yet');
   process.env.OPENFILM_TRASH_DIR = join(root, 'trash');
   const kept = await commitSkills(seen.staging, { mine });
   delete process.env.OPENFILM_TRASH_DIR;
@@ -233,7 +270,7 @@ test('openfilm skills and skill: the list, one printed whole, one added from an 
     assert.ok(listed.lines.some((l) => /brand\s+this project/.test(l)));
     assert.ok(listed.lines.some((l) => l.includes('This film\'s brand')));
     /* outside a project: none of this film's; OpenFilm's own once installed, and not while off */
-    assert.match(skillsCommand('openfilm', { cwd: root }).lines[0], /^No skills installed\./);
+    assert.ok(skillsCommand('openfilm', { cwd: root }).lines.some(l => /u3-subtitles\s+u3/.test(l)), 'bundled u3 workflows are available without installing official skills');
     setSkillInstalled('replicate', true);
     const outside = skillsCommand('openfilm', { cwd: root }).lines;
     assert.match(outside[0], /^Skills\. /);
@@ -256,7 +293,7 @@ test('openfilm skills and skill: the list, one printed whole, one added from an 
     assert.ok(fetched.ok, fetched.lines.join('\n'));
     assert.match(fetched.lines.join('\n'), /Added lyric-pv: Lyric videos[\s\S]*scripts\/make\.py[\s\S]*only skills you trust/);
     assert.ok(readFileSync(join(home, 'skills', 'lyric-pv', 'SKILL.md'), 'utf8').includes('Lyric videos'));
-    assert.deepEqual(listSkills({ mine: join(home, 'skills'), official: join(root, 'none') }).map((s) => s.name), ['lyric-pv'], 'nothing left from the fetch');
+    assert.deepEqual(listSkills({ mine: join(home, 'skills'), official: join(root, 'none'), u3: join(root, 'none') }).map((s) => s.name), ['lyric-pv'], 'nothing left from the fetch');
   } finally {
     if (before === undefined) delete process.env.OPENFILM_SKILLS; else process.env.OPENFILM_SKILLS = before;
     if (beforeHome === undefined) delete process.env.OPENFILM_HOME; else process.env.OPENFILM_HOME = beforeHome;

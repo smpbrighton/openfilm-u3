@@ -80,6 +80,7 @@ export function SkillsLibrary({ skills, setSkills, projectId, opened, onOpen, on
     void sourcesApi.setSkillInstalled(skill.name, installed).catch(reload);
   };
   const remove = (skill: SkillEntry) => {
+    if (skill.source === 'u3') return;
     if (skill.source === 'official') { install(skill, false); return; }
     setRemoving(skill);
   };
@@ -90,6 +91,7 @@ export function SkillsLibrary({ skills, setSkills, projectId, opened, onOpen, on
   const groups = [
     { id: 'mine', label: t('gallery.mine'), hint: t('gallery.mineHint'), items: installed.filter((k) => k.source === 'mine').sort(byOrder) },
     { id: 'official', label: t('gallery.fromOpenFilm'), hint: t('gallery.officialHint'), items: installed.filter((k) => k.source === 'official').sort(byOrder) },
+    { id: 'u3', label: 'u3', hint: '', items: installed.filter((k) => k.source === 'u3').sort(byOrder) },
     { id: 'project', label: t('gallery.project'), hint: t('gallery.projectHint'), items: installed.filter((k) => k.source === 'project').sort(byOrder) },
   ];
   const catalog = skills.filter((k) => k.source === 'official' && (kind === 'all' || (kind === 'style') === (k.kind === 'style')) && matches(k)).sort(byOrder);
@@ -197,8 +199,10 @@ export function SkillsLibrary({ skills, setSkills, projectId, opened, onOpen, on
     return [
       ...(onTry ? [{ id: 'try', icon: <MessageSquarePlus size={14} />, label: t('gallery.tryNow'), disabled: Boolean(k.off), onSelect: () => onTry(k) }] : []),
       { id: 'open', icon: <Info size={14} />, label: t('gallery.details'), onSelect: () => onOpen(k) },
-      { id: 'sep', separator: true },
-      { id: 'remove', icon: <Trash2 size={14} />, label: t(k.source === 'official' ? 'gallery.uninstall' : 'gallery.remove'), danger: true, onSelect: () => remove(k) },
+      ...(k.source === 'u3' ? [] : [
+        { id: 'sep', separator: true as const },
+        { id: 'remove', icon: <Trash2 size={14} />, label: t(k.source === 'official' ? 'gallery.uninstall' : 'gallery.remove'), danger: true, onSelect: () => remove(k) },
+      ]),
     ];
   }
 }
@@ -388,7 +392,7 @@ function SkillPage({ skill, projectId, onTurn, onInstall, onRemove, onTry, onCov
           </div>
           {skill.off ? <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">{t('gallery.skillOff')}</p> : null}
           <div className="mt-2.5 flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
-            <span>{t(group)}</span>
+            <span>{skill.source === 'u3' ? 'u3' : t(group)}</span>
             {skill.version ? <span className="rounded-[5px] border border-[var(--border)] px-1.5 py-[1px] font-mono text-[10.5px] text-[var(--text-dim)]">v{skill.version}</span> : null}
             {/* its source: OpenFilm's repository, or the address one of the person's came from */}
             {source ? (
@@ -408,7 +412,7 @@ function SkillPage({ skill, projectId, onTurn, onInstall, onRemove, onTry, onCov
             <button type="button" onClick={() => onTry(skill)} disabled={skill.off} title={skill.off ? t('gallery.tryOff') : undefined}
               className="flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] bg-[var(--text)] text-[14px] font-medium text-[var(--bg)] transition hover:opacity-90 disabled:opacity-40"><MessageSquarePlus size={15} />{t('gallery.tryNow')}</button>
           ) : null}
-          {installed ? (
+          {installed && skill.source !== 'u3' ? (
             <button type="button" onClick={onRemove}
               className="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] text-[13px] text-[var(--text-muted)] transition hover:bg-[color-mix(in_srgb,var(--err)_12%,transparent)] hover:text-[var(--err)]">
               <Trash2 size={14} />{t(skill.source === 'official' ? 'gallery.uninstall' : 'gallery.remove')}

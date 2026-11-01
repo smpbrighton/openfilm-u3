@@ -42,7 +42,7 @@ export const SKILL_FILE = 'SKILL.md';
 /** The project's own skills, beside film.html. */
 export const PROJECT_SKILLS = 'skills';
 /** The places skills are looked for, the first winning a name. */
-export const SKILL_SOURCES = /** @type {const} */ (['project', 'mine', 'official']);
+export const SKILL_SOURCES = /** @type {const} */ (['project', 'mine', 'official', 'u3']);
 /** @typedef {typeof SKILL_SOURCES[number]} SkillSource */
 
 /**
@@ -50,6 +50,8 @@ export const SKILL_SOURCES = /** @type {const} */ (['project', 'mine', 'official
  * OPENFILM_OFFICIAL_SKILLS names another folder of them: a checkout's skills/, while they are being changed.
  */
 export const officialSkillsDir = () => process.env.OPENFILM_OFFICIAL_SKILLS || join(dirname(fileURLToPath(import.meta.url)), '..', 'skills');
+/** Read-only u3 workflows, bundled by the desktop app or read from the source checkout. */
+export const u3SkillsDir = () => process.env.OPENFILM_U3_SKILLS || resolve(dirname(fileURLToPath(import.meta.url)), '../../../u3/skills');
 /**
  * The person's own skills: OPENFILM_SKILLS, else `Skills/` beside the default projects library (OPENFILM_LIBRARY, else
  * ~/Movies/OpenFilm/Projects on macOS, ~/Videos/OpenFilm/Projects elsewhere: locations.mjs libraryDefault). They stay
@@ -225,13 +227,13 @@ export function skillsIn(dir, source) {
 /**
  * Every skill available to a project (or none: only the person's own and the official ones), by name, the first
  * place holding a name winning; sorted by name.
- * @param {{ project?: string | null, mine?: string, official?: string }} [where]
+ * @param {{ project?: string | null, mine?: string, official?: string, u3?: string }} [where]
  * @returns {Skill[]}
  */
-export function listSkills({ project = null, mine = mySkillsDir(), official = officialSkillsDir() } = {}) {
+export function listSkills({ project = null, mine = mySkillsDir(), official = officialSkillsDir(), u3 = u3SkillsDir() } = {}) {
   /** @type {Map<string, Skill>} */
   const byName = new Map();
-  const places = /** @type {Array<[string | null, SkillSource]>} */ ([[project ? join(project, PROJECT_SKILLS) : null, 'project'], [mine, 'mine'], [official, 'official']]);
+  const places = /** @type {Array<[string | null, SkillSource]>} */ ([[project ? join(project, PROJECT_SKILLS) : null, 'project'], [mine, 'mine'], [official, 'official'], [u3, 'u3']]);
   for (const [dir, source] of places) {
     if (!dir) continue;
     for (const skill of skillsIn(dir, source)) {

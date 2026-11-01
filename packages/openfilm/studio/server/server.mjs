@@ -495,6 +495,7 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
       const installed = (await readJson(req))?.installed;
       if (typeof installed !== 'boolean') throw new HttpError(400, 'installed: true or false');
       const skill = listSkills().find((k) => k.name === decodeURIComponent(parts[1]));
+      if (skill?.source === 'u3') throw new HttpError(400, 'u3 skills are bundled and read-only.');
       if (!skill || skill.source !== 'official') throw new HttpError(404, 'no such official skill');
       setSkillInstalled(skill.name, installed);
       return json(res, 200, { installed });
@@ -505,6 +506,7 @@ export async function startStudio({ port = 4747, key, openBrowser = systemBrowse
       const project = id ? (await listProjects()).find((p) => p.id === id && !p.missing) : null;
       const skill = listSkills({ project: project?.path ?? null }).find((k) => k.name === decodeURIComponent(parts[1]));
       if (!skill) throw new HttpError(404, 'no such skill');
+      if (skill.source === 'u3') throw new HttpError(400, 'u3 skills are bundled and read-only.');
       if (skill.source === 'official') throw new HttpError(400, 'An official skill is uninstalled, not removed.');
       if (skill.source === 'mine') await removeSkill(skill.name);
       else await moveToTrash(skill.folder);

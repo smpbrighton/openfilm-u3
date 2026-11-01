@@ -40,7 +40,7 @@ export type FetchJob = {
 };
 /** a skill a project can be made with (openfilm/src/skills.mjs): the project's own, the person's, or official */
 export type SkillEntry = {
-  name: string; description: string; source: 'project' | 'mine' | 'official'; scripts: number;
+  name: string; description: string; source: 'project' | 'mine' | 'official' | 'u3'; scripts: number;
   /** how people see it (its openfilm.json): a title and a one-line summary, by language */
   shown?: { title: Record<string, string>; summary: Record<string, string>; details?: Record<string, string> };
   /** its openfilm.json's (else its front matter's) */

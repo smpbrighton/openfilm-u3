@@ -21,7 +21,7 @@ export function projectAround(from) {
   return null;
 }
 
-const SOURCE = { project: 'this project', mine: 'yours', official: 'official' };
+const SOURCE = { project: 'this project', mine: 'yours', official: 'official', u3: 'u3' };
 /** a path as the person reads it: from the current folder when it is under it */
 const shown = (/** @type {string} */ p) => { const r = relative(process.cwd(), p); return r && !r.startsWith('..') ? r : p; };
 
