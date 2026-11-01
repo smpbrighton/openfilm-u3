@@ -97,3 +97,15 @@ test('u3 clips suppress every Studio cue without changing transcripts or subtitl
   assert.equal(await readFile(join(root, 'subtitles.json'), 'utf8'), settings);
   assert.equal(await readFile(join(root, 'footage.vtt'), 'utf8'), vtt);
 });
+
+test('a layer page is laid out at the film\'s own stage: a landscape film gets a 1920 × 1080 page, not a portrait one', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'of-u3-subtitles-wide-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, 'film.html'), filmHtml({ stage: { w: 1920, h: 1080 }, tracks: [{ clips: [{ id: 'footage', src: 'footage.mp4', time: [0, 10] }] }] }));
+  await writeFile(join(root, 'input.vtt'), vtt);
+  const { page } = await importSubtitles(root, { src: 'input.vtt' });
+  const html = await readFile(join(root, page), 'utf8');
+  assert.match(html, /width:\s*1920px;\s*height:\s*1080px/, 'the page body is the stage');
+  assert.match(html, /width:\s*1920,\s*height:\s*1080/, 'window.film says the stage');
+  assert.doesNotMatch(html, /1080px;\s*height:\s*1920px|width:\s*1080,\s*height:\s*1920/, 'nothing of the portrait template is left');
+});
