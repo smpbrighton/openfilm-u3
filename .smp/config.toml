@@ -4,7 +4,7 @@
 # worktree.sh finish 의 검증 명령과 push 명령(메인 워크트리의 프로젝트 루트에서 실행). 큰따옴표는 값 안에 쓰지 않는다. 필요하면 풀고 쓴다.
 # 검증 명령이 없으면 scripts/verify.sh 가 있을 때 bash scripts/verify.sh 를 쓰고, push 키가 없으면 push 하지 않는다.
 verify="pnpm run verify"
-# push="git push"
+push="git push origin main"
 
 # 중심 브랜치. 변경 워크트리가 여기서 시작하고 여기로 병합된다. 없으면 main, master, 메인 워크트리의 브랜치 순으로 고른다.
 # central="develop"
