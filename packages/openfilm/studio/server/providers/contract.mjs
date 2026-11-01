@@ -80,6 +80,7 @@
  *   models?: Partial<Record<Verb, { id: string, name: string }[]>>,
  *   checkKey?: (key: string) => void,
  *   keyless?: boolean,
+ *   local?: boolean,
  *   speechFormat?: 'mp3',
  *   run: (verb: Verb, args: Record<string, unknown>, ctx: RunContext) => Promise<RunResult>,
  * }} Provider
@@ -89,6 +90,7 @@
  * is pasted instead of at the first run. Only for what the provider knows without calling anyone: it must not fetch.
  * `keyless`: it also works with no key (a free tier), so the person can connect it with one click and add a key for
  * higher limits. Connected without one, its `key` is ''. Like every provider, it serves nothing until it is connected.
+ * `local`: media stays on this computer; no key can be added in Settings.
  * `billingUrl`: the provider's own page where the person tops up its balance. A run that fails because the account has
  * no balance left throws an Error with `code: 'balance'` (common.mjs `noBalance`), the same for every provider: the
  * person is told in Studio, with this page, and the agent is told to stop.

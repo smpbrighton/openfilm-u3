@@ -13,6 +13,7 @@ import { VERBS, WEB_VERBS, WHERE_TO_CONNECT, catalog, flagHelp, runGet, services
 import { wav } from './providers/common.mjs';
 import { changeSettings, kindOf, providersFile } from './keys.mjs';
 import { listProviders } from './providers/index.mjs';
+import { createWhisperProvider, runProcess } from './providers/u3-whisper.mjs';
 import { startStudio } from './server.mjs';
 import { filmHtml } from '../../src/film-doc.mjs';
 
@@ -251,6 +252,36 @@ test('asr: the speech alone is sent, its transcript lands beside the recording, 
   assert.equal(transcribed(), 2, '--force transcribes again');
 });
 
+test('asr: local u3 Whisper lands a Korean word transcript and respects skip and force', async () => {
+  const root = project();
+  writeFileSync(join(root, 'talk.wav'), wav(new Uint8Array(64000), 16000));
+  await changeSettings((s) => { s.keys['u3-whisper'] = ''; s.use.asr = 'u3-whisper'; });
+  const registered = listProviders().find((p) => p.id === 'u3-whisper');
+  const original = registered.run;
+  let runs = 0;
+  registered.run = createWhisperProvider({ cli: async () => 'test-whisper', models: async (file) => file.name,
+    run: async (call) => {
+      if (call.bin === 'ffmpeg') return runProcess(call);
+      runs++;
+      writeFileSync(`${call.args.at(-1)}.json`, JSON.stringify({ transcription: [
+        { text: ' 안녕하세요', offsets: { from: 100, to: 700 } },
+        { text: ' 자막입니다.', offsets: { from: 800, to: 1500 } },
+      ] }));
+    },
+  }).run;
+  try {
+    const output = await runGet(root, 'asr', { src: 'talk.wav' }, { via: 'u3-whisper' });
+    const receipt = JSON.parse(output.slice(output.indexOf('{')));
+    assert.deepEqual(receipt, { src: 'talk.wav', dur: 2, text: '안녕하세요 자막입니다.', transcript: 'talk.vtt' });
+    assert.match(readFileSync(join(root, 'talk.vtt'), 'utf8'), /00:00:00\.100 --> 00:00:02\.000\n안녕하세요 <00:00:00\.800>자막입니다\./);
+    assert.equal(JSON.parse(await runGet(root, 'asr', { src: 'talk.wav' })).skip, true);
+    assert.equal(runs, 1);
+    await runGet(root, 'asr', { src: 'talk.wav', force: true });
+    assert.equal(runs, 2);
+    assert.equal(calls.length, 0, 'no cloud ASR request');
+  } finally { registered.run = original; }
+});
+
 test('asr: a recording outside assets/ gets its transcript beside it too; the tools\' files are refused', async () => {
   const root = project();
   execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=1', join(root, 'talk.wav')]);
@@ -438,7 +469,7 @@ test('openfilm get: what can be got here, connected, partly or not at all; wrong
     assert.equal(nothing.stdout, `${listing(['subtitles']).join('\n')}\n\n` + 'Nothing is connected for media here: each kind works only once the person connects a service that makes it (below). '
       + 'Until then, make sound and pictures in code, or use a service the person has a key for (with its API docs), and save them under assets/. '
       + `\`openfilm get <what> --help\` shows what one kind takes (${media.filter(v => v !== 'subtitles').join(', ')}).\n\n${services()}\n`);
-    assert.match(services(), /^Media services, each used with the person's own key: Brave Search \(web search\), Doubao \(transcripts\), ElevenLabs \(voice-over, sound effects, music, transcripts\), fal\.ai \(images, video, music, sound effects\), .*, Microsoft Azure \(voice-over\), .*, Tavily \(web search\), u3 Library \(sound effects, memes\), Xiaomi MiMo \(voice-over, transcripts\)\. In Studio, the OpenFilm logo at the top left opens Settings/);
+    assert.match(services(), /^Media services, each used with the person's own key: Brave Search \(web search\), Doubao \(transcripts\), ElevenLabs \(voice-over, sound effects, music, transcripts\), fal\.ai \(images, video, music, sound effects\), .*, Microsoft Azure \(voice-over\), .*, Tavily \(web search\), u3 Library \(sound effects, memes\), u3 Whisper \(transcripts\), Xiaomi MiMo \(voice-over, transcripts\)\. In Studio, the OpenFilm logo at the top left opens Settings/);
 
     /* partly: what is connected, then one line for the rest with the services that make each, then the services there
        are; never who makes what is connected */

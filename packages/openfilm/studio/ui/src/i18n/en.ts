@@ -2041,6 +2041,7 @@ export const en = {
       keyEnding: 'Key ending in {last4}',
       useEnv: 'Use the key in ${env}',
       keyless: "Works without a key: your agent's searches and the addresses it reads go to {name}. A key lifts its limits.",
+      local: 'Runs on this computer without a key. Your files stay on this computer.',
       addKey: 'Add a key',
       own: {
         title: "Custom services",

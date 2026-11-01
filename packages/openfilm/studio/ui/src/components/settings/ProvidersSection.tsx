@@ -98,7 +98,8 @@ function KeyRow({ provider, hook }: { provider: OwnProvider; hook: ProvidersHook
   const key = azure ? azureKey(region, draft) : draft.trim() ? draft : null;
   /* a key can be pasted while there is none: not connected, or connected without one */
   const keyless = Boolean(provider.keyless);
-  const keyWanted = !provider.source || (keyless && !provider.last4);
+  const keyWanted = !provider.local && (!provider.source || (keyless && !provider.last4));
+  const keylessNote = t(provider.local ? 'settings.providers.local' : 'settings.providers.keyless').replaceAll('{name}', provider.name);
 
   const close = () => { setAdding(false); setDraft(''); setRegion(''); };
   const save = async () => {
@@ -177,9 +178,9 @@ function KeyRow({ provider, hook }: { provider: OwnProvider; hook: ProvidersHook
                 {t('settings.providers.useEnv').replaceAll('{env}', provider.env)}
               </button>
             ) : null}
-            <a href={provider.keysUrl} target="_blank" rel="noreferrer" className={`${settingsLink} text-[14.5px]`}>
+            {!provider.local && provider.keysUrl ? <a href={provider.keysUrl} target="_blank" rel="noreferrer" className={`${settingsLink} text-[14.5px]`}>
               {t('settings.providers.getKey').replaceAll('{name}', provider.name)}<ExternalLink size={12} />
-            </a>
+            </a> : null}
           </SettingsInset>
         </form>
       ) : null}
@@ -188,8 +189,8 @@ function KeyRow({ provider, hook }: { provider: OwnProvider; hook: ProvidersHook
         <span className="inline-flex items-center gap-1">
           {abilityPhrase(ABILITY_ORDER.filter((v) => provider.verbs.includes(v)), t)}
           {/* what goes to a service connected with no key, a point away, before it is connected and after */}
-          <Tooltip label={t('settings.providers.keyless').replaceAll('{name}', provider.name)} wrap>
-            <span tabIndex={0} aria-label={t('settings.providers.keyless').replaceAll('{name}', provider.name)}
+          <Tooltip label={keylessNote} wrap>
+            <span tabIndex={0} aria-label={keylessNote}
               className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-[var(--bg-hover)] hover:text-[var(--text)]">
               <CircleHelp size={14} aria-hidden />
             </span>

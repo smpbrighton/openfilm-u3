@@ -29,6 +29,7 @@ import doubao from './doubao.mjs';
 import mimo from './mimo.mjs';
 import keenable from './keenable.mjs';
 import u3Library from './u3-library.mjs';
+import u3Whisper from './u3-whisper.mjs';
 
 /**
  * @typedef {import('./contract.mjs').Provider} Provider @typedef {import('./contract.mjs').Verb} Verb
@@ -37,7 +38,7 @@ import u3Library from './u3-library.mjs';
  */
 
 /** The providers paid with the person's own key. */
-const OWN = [elevenlabs, openai, google, fal, pexels, pixabay, brave, tavily, groq, azure, doubao, mimo, keenable, u3Library];
+const OWN = [elevenlabs, openai, google, fal, pexels, pixabay, brave, tavily, groq, azure, doubao, mimo, keenable, u3Library, u3Whisper];
 
 /** The kinds of media the person chooses a provider and model for (Settings → Services). */
 const USE_VERBS = /** @type {Verb[]} */ (['tts', 'music', 'sfx', 'meme', 'asr', 'image', 'image-search', 'video', 'translate', 'web-search']);
@@ -127,7 +128,7 @@ async function state() {
       return {
         id: p.id, name: p.name, verbs: p.verbs, models: p.models ?? {}, keysUrl: p.keysUrl, env: key?.env ?? inEnv?.env ?? p.env, envKey: Boolean(inEnv),
         /* `keyless`: it connects without a key; connected so, it has no last four */
-        ...(p.keyless ? { keyless: true } : {}), source: key?.source ?? null, last4: key?.key ? key.key.slice(-4) : null,
+        ...(p.keyless ? { keyless: true } : {}), ...(p.local ? { local: true } : {}), source: key?.source ?? null, last4: key?.key ? key.key.slice(-4) : null,
       };
     }),
     ...shownChoices(settings),

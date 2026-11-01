@@ -21,6 +21,8 @@ export interface OwnProvider {
   env: string;
   /** it works without a key: connected with one click, a key added for higher limits (then it has `last4`) */
   keyless?: boolean;
+  /** files stay on this computer and no key is needed */
+  local?: boolean;
   /** where its key comes from: kept by Studio, the environment, or none (not connected) */
   source: 'file' | 'env' | null;
   /** the environment has a key for it, connected or not: connecting can use that one */

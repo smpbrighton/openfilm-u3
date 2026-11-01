@@ -15,7 +15,7 @@ const settings = (keys = {}, use = {}) => ({ keys, use, model: {} });
 const id = async (promise) => (await promise)?.id ?? null;
 
 test('the own-key providers, in the order Settings lists them', () => {
-  assert.deepEqual(listProviders().map((p) => p.id), ['elevenlabs', 'openai', 'google', 'fal', 'pexels', 'pixabay', 'brave', 'tavily', 'groq', 'azure', 'doubao', 'mimo', 'keenable', 'u3-library']);
+  assert.deepEqual(listProviders().map((p) => p.id), ['elevenlabs', 'openai', 'google', 'fal', 'pexels', 'pixabay', 'brave', 'tavily', 'groq', 'azure', 'doubao', 'mimo', 'keenable', 'u3-library', 'u3-whisper']);
 });
 
 test('nothing serves a kind of media nobody chose, even with a key that could', async () => {
@@ -76,4 +76,13 @@ test('Settings shows a choice only while its provider has a key; the choice itse
   assert.equal(shown.use.sfx, null);
   assert.deepEqual(kept.use, { image: 'openai', sfx: 'elevenlabs' });
   assert.equal(shownChoices({ ...settings({ openai: 'sk-0123456789' }, { image: 'openai' }), off: [] }).use.image, 'openai');
+});
+
+test('local Whisper connects without a key and offers the pinned ASR model', async () => {
+  const provider = await chooseProvider('asr', { via: 'u3-whisper', settings: settings({ 'u3-whisper': '' }) });
+  assert.equal(provider.local, true);
+  assert.equal(provider.keyless, true);
+  assert.deepEqual(provider.models.asr, [{ id: 'large-v3-turbo-q5_0', name: 'whisper large-v3-turbo' }]);
+  assert.equal(await chooseProvider('asr', { settings: settings({}, { asr: 'u3-whisper' }) }), null);
+  assert.equal(listProviders().find((p) => p.id === 'u3-library').local, true);
 });
