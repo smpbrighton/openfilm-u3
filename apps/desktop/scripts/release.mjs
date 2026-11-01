@@ -93,6 +93,15 @@ const pack = (dir) => execFileSync('npm', ['pack', '--ignore-scripts', '--pack-d
 const dependencies = { ...pkg.dependencies, openfilm: `file:../${pack(protocol)}` };
 /* npm takes the versions pnpm's lockfile has (locked-versions.mjs): what the tests ran with, not the latest */
 const lockedTree = JSON.parse(execFileSync('pnpm', ['list', '--prod', '--depth', 'Infinity', '--json'], { cwd: desktop, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }))[0];
+/* Transformers imports Sharp even for text. Keep only its target native packages, while agent binaries remain omitted. */
+const sharpTree = lockedTree.dependencies['@huggingface/transformers'].dependencies.sharp;
+const nativeSharp = [`@img/sharp-${win ? 'win32' : 'darwin'}-${arch}`, ...(!win ? [`@img/sharp-libvips-darwin-${arch}`] : [])];
+for (const name of nativeSharp) {
+  const version = sharpTree.dependencies[name]?.version;
+  if (!version) throw new Error(`The lockfile has no ${name}`);
+  dependencies[name] = version;
+}
+
 writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
   name: 'openfilm-desktop',
   productName: NAME,
@@ -105,9 +114,9 @@ writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
   type: 'module',
   main: 'src/main.mjs',
   dependencies,
-  overrides: lockedOverrides(lockedTree, pkg.dependencies),
+  overrides: lockedOverrides(lockedTree, dependencies),
 }, null, 2)}\n`);
-run('npm', ['install', '--omit=dev', '--omit=optional', '--no-audit', '--no-fund', '--no-package-lock', '--loglevel=error'], { cwd: stage });
+run('npm', ['install', '--omit=dev', '--omit=optional', '--no-audit', '--no-fund', '--no-package-lock', '--loglevel=error', `--os=${win ? 'win32' : 'darwin'}`, `--cpu=${arch}`], { cwd: stage });
 const offLock = versionsOffLock(lockedTree, join(stage, 'node_modules'));
 if (offLock.length) {
   throw new Error(`The installer's packages are not the lockfile's:\n${offLock.map((p) => `  ${p.name} ${p.version} (locked: ${p.locked.join(', ')})`).join('\n')}`);
@@ -142,7 +151,16 @@ await builder.build({
   ...(win ? { win: ['nsis'] } : { mac: ['dmg', 'zip'] }),
   [arch]: true,
   config: {
-    afterPack: win ? (context) => windowsResources(context) : undefined,
+    afterPack: (context) => {
+      if (win) return windowsResources(context);
+      /* osx-sign discovers these unpacked Mach-O files before signing; fail before signing if staging lost them. */
+      const modules = join(context.appOutDir, `${NAME}.app`, 'Contents/Resources/app.asar.unpacked/node_modules');
+      const native = join(modules, 'onnxruntime-node/bin/napi-v6/darwin', arch);
+      for (const file of ['onnxruntime_binding.node', 'libonnxruntime.1.22.0.dylib']) {
+        if (!existsSync(join(native, file))) throw new Error(`u3 ONNX native file missing: ${file}`);
+      }
+      if (!readdirSync(join(modules, `@img/sharp-darwin-${arch}/lib`)).some((name) => name.endsWith('.node'))) throw new Error('u3 Sharp native file missing');
+    },
     /* unsigned on a Mac: signed ad hoc, whole, before the .dmg and .zip are made. Electron's fuses are written into
        its framework after the linker signed it, and an Apple chip kills a program whose pages no longer match its
        signature ("Code Signature Invalid") the moment it starts */
@@ -170,7 +188,7 @@ await builder.build({
     electronVersion,
     asar: true,
     /* run by Electron as Node from outside the archive: the CLI the agents run, the agents' adapters */
-    asarUnpack: ['node_modules/openfilm/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**'],
+    asarUnpack: ['node_modules/openfilm/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**', 'node_modules/onnxruntime-node/**', 'node_modules/@huggingface/transformers/**', 'node_modules/sharp/**', 'node_modules/@img/**'],
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
     /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs; u3's
        bundled library (the repo's u3/library), which Studio reads from OPENFILM_U3_LIBRARY (src/main.mjs) */

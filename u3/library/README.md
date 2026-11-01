@@ -44,3 +44,9 @@ u3 의 번들 라이브러리다. openfilm-u3 의 provider `u3-library` 와 Stud
 - 비공개 prerelease `library-meme-embed-1` 의 `u3-library-meme-embed-1.tar` 에 두 파일만 있다. sha256 은 `4523572bb88d231d662a7d1ceac09a6543cfdab1a8761fd81cc4e6f9b45ca39a` 이다.
 - `fetch-library.mjs` 는 짤 다음에 색인을 받는다. tar 해시와 행렬 크기를 확인하고 `.fetched` 가 같으면 건너뛴다.
 - 색인은 u3 `src-tauri/resources/library/meme-embed/` 의 두 파일을 경로 `meme-embed/` 아래 이름순으로 묶었다. ustar, uid·gid·mtime 0, mode 0644다. 새 판은 새 태그로 올린다. 이전 Release 는 지우지 않는다.
+
+## 정확한 짤 검색
+- desktop 앱의 짤 탭에서 「정확한 검색 켜기(2.1GB)」를 누르면 고정 revision의 `Xenova/bge-m3` fp32 모델을 `~/.openfilm/u3/models/Xenova/bge-m3/` 에 받는다.
+- 서버는 `POST /api/u3/models/bge-m3` 에서만 받기를 시작한다. `GET` 은 상태·진행·오류를 돌려준다. 끊긴 받기는 다음 버튼 요청에서 Range로 잇는다. SHA-256 검사를 통과한 파일만 사용한다.
+- desktop 이 넘긴 `OPENFILM_U3_EMBED_MODULES` 에서 Transformers 4.3.1과 ONNX Runtime 1.22.0을 읽는다. 모듈·모델·색인이 없거나 실행이 실패하면 기존 규칙 검색을 사용한다. CLI 요청과 패널 검색은 모델을 받지 않는다.
+- 모델이 준비되면 CLS pooling과 정규화를 거친 query 벡터로 내적 상위 40개를 고른다. 규칙 상위 10개를 뒤에 합치고 중복을 뺀다. 현재 사이드카의 문서 해시와 다른 색인 행은 사용하지 않는다.

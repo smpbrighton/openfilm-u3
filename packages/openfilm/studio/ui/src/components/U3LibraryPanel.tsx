@@ -11,7 +11,7 @@ import { useT } from '@/i18n';
 import { clearResourceDrag, setResourceDragData } from '@/lib/resource-drag';
 import {
   filterU3Sfx, listU3Memes, listU3Sfx, mergeU3MemePage, U3_MEME_EMOTIONS, u3Categories, u3DragItem, u3MemeDragItem, u3MemeUrl, u3SfxUrl,
-  type U3Meme, type U3MemePage, type U3Sfx,
+  u3MemeModel, type U3MemeModelStatus, type U3Meme, type U3MemePage, type U3Sfx,
 } from '@/lib/u3-library';
 import { PANE_BAR, PANE_BTN, PANE_BTN_ON, PANE_ICON, PANE_TITLE } from './dock-pane-bar';
 import { MIN_VIEWER, PaneDivider } from './PaneDivider';
@@ -144,6 +144,8 @@ function MemesTab() {
   const t = useT();
   const [query, setQuery] = React.useState('');
   const [emotion, setEmotion] = React.useState('');
+  const [modelVersion, setModelVersion] = React.useState(0);
+  const modelReady = React.useCallback(() => setModelVersion((v) => v + 1), []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -159,10 +161,60 @@ function MemesTab() {
           {U3_MEME_EMOTIONS.map((e) => <option key={e} value={e}>{e}</option>)}
         </select>
       </div>
+      <MemeModel onReady={modelReady} />
       {/* A new filter owns a new list: scroll, pages, timer and in-flight requests reset together. */}
-      <MemeResults key={JSON.stringify([query.trim(), emotion])} query={query.trim()} emotion={emotion} />
+      <MemeResults key={JSON.stringify([query.trim(), emotion, modelVersion])} query={query.trim()} emotion={emotion} />
     </div>
   );
+}
+
+/** A download stays on the server when this tab closes; returning reads its current progress. */
+function MemeModel({ onReady }: { onReady: () => void }) {
+  const [status, setStatus] = React.useState<U3MemeModelStatus | null>(null);
+  const [problem, setProblem] = React.useState<string | null>(null);
+  const [starting, setStarting] = React.useState(false);
+  const previous = React.useRef<string | null>(null);
+  const active = React.useRef(false);
+  const accept = React.useCallback((next: U3MemeModelStatus) => {
+    if (!active.current) return;
+    setStatus(next);
+    setProblem(null);
+    if (next.state === 'ready' && previous.current !== 'ready') onReady();
+    previous.current = next.state;
+  }, [onReady]);
+  React.useEffect(() => {
+    active.current = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      try { accept(await u3MemeModel()); }
+      catch (e) { if (active.current) setProblem(e instanceof Error ? e.message : String(e)); }
+      if (active.current) timer = setTimeout(() => { void poll(); }, 1000);
+    };
+    void poll();
+    return () => { active.current = false; clearTimeout(timer); };
+  }, [accept]);
+  const download = async () => {
+    setStarting(true);
+    try { accept(await u3MemeModel(true)); }
+    catch (e) { if (active.current) setProblem(e instanceof Error ? e.message : String(e)); }
+    finally { if (active.current) setStarting(false); }
+  };
+  return <div className="shrink-0 px-2.5 pb-2 text-[11px] text-[var(--text-muted)]" data-u3-meme-model="">
+    {problem ? <p role="alert">{problem}</p> : null}
+    {status?.available === false ? <p>정확한 검색은 desktop 앱에서 사용할 수 있습니다.</p>
+      : status?.state === 'downloading' ? <div role="status">
+        <p>모델 받는 중 {Math.floor(status.progress * 100)}%</p>
+        <progress className="w-full" value={status.progress} max={1} aria-label="검색 모델 다운로드" />
+      </div>
+        : status?.state === 'ready' ? <p role="status">{status.embedError ? '정확한 검색을 실행하지 못했습니다. 규칙 검색을 사용합니다.' : '정확한 검색 켜짐'}</p>
+          : status ? <>
+            {status.error ? <p role="alert">{status.error}</p> : null}
+            <button type="button" disabled={starting} onClick={() => { void download(); }}
+              className="rounded-md bg-[var(--bg-hover)] px-2 py-1 text-[var(--text)] disabled:opacity-50">
+              {starting ? '모델 받기 시작 중' : '정확한 검색 켜기(2.1GB)'}
+            </button>
+          </> : null}
+  </div>;
 }
 
 function MemeResults({ query, emotion }: { query: string; emotion: string }) {

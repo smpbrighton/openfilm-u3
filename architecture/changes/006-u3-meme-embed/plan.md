@@ -42,3 +42,14 @@ Track: lite.
 - `pnpm run verify`.
 ### 롤백
 병합 revert. 모델 파일은 남는다. 데스크톱 의존성 제거.
+
+## 구현에서 달라진 것
+- gate는 이 worktree의 `pnpm dev:desktop`으로 실행했다. Electron 44.9.3의 실제 Studio utilityProcess에서 ONNX Runtime 1.22.0을 불러왔다. 「황당한 표정」은 1,024차원, norm 0.9999997954600229로 나왔다. 임시 계측은 최종 코드에서 제거했다. 증거는 `.dev/u3-meme-embed-evidence/`에 있다.
+- 색인은 비공개 prerelease `library-meme-embed-1`의 `u3-library-meme-embed-1.tar`다. 9,123,840 bytes이며 SHA-256은 `4523572bb88d231d662a7d1ceac09a6543cfdab1a8761fd81cc4e6f9b45ca39a`다. 올리기 전에 tag 부재와 비공개 저장소를 확인했다. `.gitignore`에 받은 색인 경로를 추가했다.
+- 모델의 일곱 파일 크기와 해시를 고정했다. 받기는 별도 비동기 작업이며 GET으로 진행을 확인한다. 네트워크 중단 시 `.part`를 남겨 다음 POST에서 Range로 잇는다. 준비된 파일도 SHA-256을 확인한다. 같은 query 벡터는 최대 32개까지 캐시해 pagination에서 재사용한다.
+- 기존 `listMemes`는 폴더 수정 시각만 캐시했다. 사이드카 내용만 바뀌면 현재 docHash를 검사하지 못했다. 실패 테스트를 먼저 커밋한 뒤 사이드카 크기·mtime·ctime도 캐시 조건에 넣었다.
+- ONNX Runtime이 Transformers 아래에서도 1.22.0 하나로 해석되도록 루트 `package.json`의 pnpm override와 lockfile을 갱신했다. desktop 의존성은 Transformers 4.3.1과 ONNX Runtime 1.22.0으로 정확히 고정했다.
+- Transformers가 text 작업에서도 Sharp를 import한다. release의 optional 제외 설치를 유지하면서 해당 플랫폼의 Sharp native package를 직접 포함한다. Sharp와 `@img`도 asar에서 푼다. Mac afterPack은 ONNX binding·dylib와 Sharp native 파일을 확인한다. electron-osx-sign의 파일 탐색이 이 unpacked binary를 서명 대상으로 찾는 것을 소스로 확인했다. 같은 npm 설치 옵션으로 만든 Mac arm64 stage에서 두 runtime import를 확인했다.
+- 패널의 새 버튼과 상태 문구는 승인된 한국어 문구를 사용한다. i18n 파일은 이 변경의 파일 목록에 없어 수정하지 않았다. 다른 언어에서도 새 문구는 한국어다.
+- 사용자의 작업 경계에 따라 merge·push·다른 worktree 수정은 하지 않는다. Windows와 공증된 패키지 빌드는 검증하지 않는다. impl-report.md는 요청대로 커밋하지 않는다.
+- 최종 검증은 대상 node 테스트 56건·typecheck·architecture lint를 통과했다. `pnpm run verify`는 마지막에 한 번 실행해 exit 0, 마지막 줄 `✓ verify passed`였다(openfilm 1,566건, shared 20건, desktop 403건 통과, 실패 0건, 건너뜀 7건).

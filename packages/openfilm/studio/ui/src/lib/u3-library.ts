@@ -138,3 +138,20 @@ async function place(projectId: string, what: { id: string; kind?: 'meme' }): Pr
   if (!res.ok || typeof body.path !== 'string') throw new Error(String(body.error ?? `Studio answered ${res.status}`));
   return body.path;
 }
+
+/** The explicit bge-m3 download. Searching never starts it. */
+export interface U3MemeModelStatus {
+  state: 'missing' | 'downloading' | 'ready' | 'error';
+  available: boolean;
+  progress: number;
+  received: number;
+  total: number;
+  error: string | null;
+  embedError: string | null;
+}
+export async function u3MemeModel(download = false): Promise<U3MemeModelStatus> {
+  const res = await fetch('/api/u3/models/bge-m3', { method: download ? 'POST' : 'GET' });
+  const body = await res.json() as U3MemeModelStatus & { error?: string };
+  if (!res.ok) throw new Error(body.error ?? `Studio answered ${res.status}`);
+  return body;
+}

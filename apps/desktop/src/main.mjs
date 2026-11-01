@@ -490,6 +490,7 @@ async function start() {
   /* u3's bundled library (scripts/release.mjs), for Studio's u3 Library (studio/server/u3-library.mjs) */
   if (runtime && existsSync(join(process.resourcesPath, 'u3-library'))) env.OPENFILM_U3_LIBRARY = join(process.resourcesPath, 'u3-library');
   if (runtime && existsSync(join(process.resourcesPath, 'u3-skills'))) env.OPENFILM_U3_SKILLS = join(process.resourcesPath, 'u3-skills');
+  env.OPENFILM_U3_EMBED_MODULES = here('../node_modules');
 
   const display = screen.getPrimaryDisplay().workArea;
   const width = Math.min(1480, display.width);
