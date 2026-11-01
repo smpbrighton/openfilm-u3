@@ -164,8 +164,9 @@ await builder.build({
     /* run by Electron as Node from outside the archive: the CLI the agents run, the agents' adapters */
     asarUnpack: ['node_modules/openfilm/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**'],
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
-    /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs */
-    extraResources: [{ from: runtime, to: 'runtime' }],
+    /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs; u3's
+       bundled library (the repo's u3/library), which Studio reads from OPENFILM_U3_LIBRARY (src/main.mjs) */
+    extraResources: [{ from: runtime, to: 'runtime' }, { from: join(desktop, '..', '..', 'u3', 'library'), to: 'u3-library' }],
     directories: { output: out, buildResources: join(desktop, 'build') },
     electronFuses: {
       runAsNode: true,

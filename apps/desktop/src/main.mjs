@@ -483,6 +483,8 @@ async function start() {
   if (ffmpegHere) env.PATH = [ffmpegHere, env.PATH].join(PATH_SEP);
   const browsers = runtime && existsSync(join(runtime, 'ms-playwright')) ? { PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright') } : {};
   Object.assign(env, browsers);
+  /* u3's bundled library (scripts/release.mjs), for Studio's u3 Library (studio/server/u3-library.mjs) */
+  if (runtime && existsSync(join(process.resourcesPath, 'u3-library'))) env.OPENFILM_U3_LIBRARY = join(process.resourcesPath, 'u3-library');
 
   const display = screen.getPrimaryDisplay().workArea;
   const width = Math.min(1480, display.width);
