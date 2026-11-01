@@ -1,5 +1,5 @@
 # Review: u3-subtitle-clips
-Author: 확인 불가(하네스 표시는 claude-haiku-5-5, opencodex 라우팅 표기는 claude-opus-5-5[1m]이고 둘이 다르다). Status: draft. Round: 1.
+Author: 확인 불가(하네스 표시는 claude-haiku-5-5, opencodex 라우팅 표기는 claude-opus-5-5[1m]이고 둘이 다르다). Status: accepted. Round: 1.
 
 ## 대조한 것
 - 변경: `architecture/changes/003-u3-subtitle-clips/intent.md`, `spec.md`
