@@ -159,6 +159,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: brew install minisign
+      - name: Verify signatures with Electron's Node runtime
+        working-directory: apps/desktop
+        run: ELECTRON_RUN_AS_NODE=1 pnpm exec electron --test src/u3-minisign.test.mjs src/u3-update-verify.test.mjs
       - name: Build Windows installer
         working-directory: apps/desktop
         env:
