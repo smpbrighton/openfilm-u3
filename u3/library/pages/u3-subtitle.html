@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Pretendard; font-weight: 400; src: url('fonts/Pretendard-Regular.otf'); }
+  @font-face { font-family: Pretendard; font-weight: 700; src: url('fonts/Pretendard-Bold.otf'); }
+  @font-face { font-family: 'Gmarket Sans'; font-weight: 700; src: url('fonts/GmarketSansTTFBold.ttf'); }
+  @font-face { font-family: TmonMonsori; font-weight: 700; src: url('fonts/TmonMonsori.otf'); }
+  :root {
+    --u3-font: Pretendard;
+    --u3-main-size: 64px;
+    --u3-sub-size: 40px;
+    --u3-color: #fff;
+    --u3-bar: 1;
+    --u3-bar-color: #000;
+    --u3-bar-opacity: 0.65;
+    --u3-x: 50%;
+    --u3-y: 80%;
+    --u3-em: #FFB020;
+    --u3-scale: 1;
+    --u3-pop: 0;
+    --u3-rise: 0;
+    --u3-shake: 0;
+    --u3-p: 1;
+  }
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  #caption {
+    position: absolute; left: var(--u3-x); top: var(--u3-y);
+    transform: translate(-50%, -50%); width: max-content; max-width: 92%;
+    color: var(--u3-color); font-family: var(--u3-font), sans-serif;
+    font-weight: 700; text-align: center; line-height: 1.3;
+  }
+  #motion {
+    position: relative; padding: 12px 24px; isolation: isolate;
+    transform: scale(calc(1 - 0.2 * var(--u3-pop) * (1 - var(--u3-p))))
+      translateY(calc(24px * var(--u3-rise) * (1 - var(--u3-p))))
+      translateX(calc(6px * var(--u3-shake) * (1 - var(--u3-p)) * sin(calc(var(--u3-p) * 3turn))))
+      scale(clamp(0.5, var(--u3-scale), 2));
+  }
+  #motion::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; border-radius: 12px;
+    background: var(--u3-bar-color); opacity: calc(var(--u3-bar) * var(--u3-bar-opacity));
+  }
+  #main { font-size: var(--u3-main-size); white-space: pre-wrap; overflow-wrap: anywhere; }
+  #sub { font-size: var(--u3-sub-size); white-space: pre-wrap; overflow-wrap: anywhere; }
+  #sub:empty { display: none; }
+  .em { color: var(--u3-em); }
+</style>
+<div id="main-src" hidden></div><div id="sub-src" hidden></div>
+<div id="caption"><div id="motion"><div id="main"></div><div id="sub"></div></div></div>
+<script>
+  // u3 captionRuns: escaped stars are literal; only nonempty pairs mark emphasis.
+  function captionRuns(text) {
+    const tokens = [];
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '\\' && text[i + 1] === '*') {
+        tokens.push({ text: '*', star: false });
+        i++;
+      } else tokens.push({ text: text[i], star: text[i] === '*' });
+    }
+    const runs = [];
+    const append = (value, highlight) => {
+      const last = runs.at(-1);
+      if (last?.highlight === highlight) last.text += value;
+      else if (value) runs.push({ text: value, highlight });
+    };
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (token.star) {
+        let end = i + 1;
+        while (end < tokens.length && !tokens[end].star) end++;
+        if (end < tokens.length && end > i + 1) {
+          append(tokens.slice(i + 1, end).map(item => item.text).join(''), true);
+          i = end;
+          continue;
+        }
+      }
+      append(token.text, false);
+    }
+    return runs;
+  }
+  function redraw() {
+    for (const name of ['main', 'sub']) {
+      const target = document.getElementById(name);
+      const text = document.getElementById(name + '-src').textContent;
+      target.replaceChildren(...captionRuns(text).map(run => {
+        if (!run.highlight) return document.createTextNode(run.text);
+        const span = document.createElement('span');
+        span.className = 'em';
+        span.textContent = run.text;
+        return span;
+      }));
+    }
+  }
+  const observer = new MutationObserver(redraw);
+  for (const name of ['main', 'sub']) {
+    observer.observe(document.getElementById(name + '-src'), { childList: true, characterData: true, subtree: true });
+  }
+  window.film = {
+    width: 1080, height: 1920,
+    ready: Promise.all([
+      document.fonts.load('400 64px Pretendard'), document.fonts.load('700 64px Pretendard'),
+      document.fonts.load('700 64px "Gmarket Sans"'), document.fonts.load('700 64px TmonMonsori')
+    ]),
+    frame(t) {
+      document.documentElement.style.setProperty('--u3-p', Math.max(0, Math.min(1, t / 0.3)));
+      redraw();
+    }
+  };
+</script>
+</html>

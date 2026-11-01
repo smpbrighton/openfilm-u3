@@ -29,6 +29,11 @@ u3 의 번들 라이브러리다. openfilm-u3 의 provider `u3-library` 와 Stud
 - 그 폴더에 `sfx/` 나 `memes/` 가 없으면 그 종류는 비어 있다.
 - 데스크톱 패키지 앱은 `resources/u3-library` 를 그 변수로 넘긴다.
 
+## 자막 페이지
+- `pages/u3-subtitle.html` 은 `get subtitles` 가 레이어마다 복사하는 투명 자막 페이지다.
+- `pages/fonts/` 는 Pretendard(400·700), Gmarket Sans Bold, TmonMonsori 와 원본 라이선스 파일을 담는다.
+- 레이어 기본값은 복사한 `scenes/u3-subtitle-<layer>.html` 의 `:root` CSS 변수로 고친다. 다시 가져와도 기존 페이지와 폰트를 덮어쓰지 않는다.
+
 ## 권리
 - 효과음 82개는 모두 myinstants.com 에서 받은 것이다. 사이드카의 `source` 가 원본 주소다.
 - 재배포 권리는 확인하지 않았다(`license: "myinstants"`). 공개 배포 전에 권리를 확인한다.

@@ -157,6 +157,9 @@ export function libraryDir(env = process.env) {
   return set ? resolve(set) : resolve(dirname(fileURLToPath(import.meta.url)), '../../../../u3/library');
 }
 
+/** Subtitle pages and their fonts in the same bundled library. */
+export const pagesDir = () => join(libraryDir(), 'pages');
+
 /** The sentence for a library that is not there. @param {string} dir */
 export const noLibrary = (dir) => `The u3 library is not at ${dir}: set OPENFILM_U3_LIBRARY to the folder that has sfx/ in it.`;
 /** The sentence for a library without its memes. @param {string} dir */
