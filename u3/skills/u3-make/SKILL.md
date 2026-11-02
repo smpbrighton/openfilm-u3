@@ -20,7 +20,6 @@ description: 받아쓰기와 원본 영상을 읽어 u3 장면표 JSON을 쓰고
 ```json
 {
   "title": "오늘의 반응",
-  "fit": "blur",
   "inputs": ["assets/video/input-a.mp4", "assets/video/input-b.mp4"],
   "scenes": [
     {
