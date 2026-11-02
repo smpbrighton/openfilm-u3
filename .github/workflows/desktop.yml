@@ -109,7 +109,7 @@ jobs:
           rm -f "$RUNNER_TEMP/AuthKey.p8"
           echo "APPLE_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
-      - name: Build and notarize both Mac targets
+      - name: Build and notarize the Mac arm64 target
         env:
           GH_TOKEN: ${{ github.token }}
           OPENFILM_SIGN_IDENTITY: ${{ secrets.OPENFILM_SIGN_IDENTITY }}
@@ -122,7 +122,7 @@ jobs:
           test -n "$OPENFILM_SIGN_IDENTITY"
           test -n "$APPLE_TEAM_ID"
           mkdir upload
-          for arch in arm64 x64; do
+          for arch in arm64; do
             (cd apps/desktop && npm run release -- --official --arch="$arch")
             out="apps/desktop/.release/$arch/out"
             cp "$out/latest-mac.yml" "upload/latest-$arch-mac.yml"

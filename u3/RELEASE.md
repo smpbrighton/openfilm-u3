@@ -2,6 +2,8 @@
 
 소스는 비공개 `smpbrighton/openfilm-u3`에 둔다. 설치 파일·업데이트 피드·서명·검증 fragment만 공개 [smpbrighton/u3-studio-releases](https://github.com/smpbrighton/u3-studio-releases)에 올린다. 소스 레포의 `desktop` workflow가 공개를 담당한다. 공개 레포는 README만 준비한 상태다.
 
+공개 릴리스는 Mac arm64와 Windows x64를 지원한다. Intel Mac은 지원하지 않는다.
+
 ## Windows 서명 형식
 
 [결정 0011](../architecture/decisions/0011-windows-update-legacy-ed.md)에 따라 Windows 설치 파일은 `minisign -S -l`로 서명한다. 앱은 legacy `Ed` 서명만 받는다. 기본 minisign이 만드는 prehash `ED` 서명은 명확한 오류 문장으로 거부한다. payload 서명과 trusted comment 서명은 Node 내장 `crypto`의 Ed25519로 검증한다. BLAKE2b와 새 암호 의존성은 쓰지 않는다. 검증할 때 설치 파일 전체를 메모리로 읽는다.
@@ -33,7 +35,7 @@ Windows job은 설치 파일을 만들기 전에 Electron에서 legacy `Ed` 통�
 1. 검증을 통과한 버전 commit에 소스 tag `v<version>`을 만든다. tag 버전은 `apps/desktop/package.json`과 같아야 한다. workflow는 정식 `x.y.z` 버전만 받는다.
 2. 소스 tag를 배포하거나 Actions에서 기존 tag를 입력하여 `desktop` workflow를 실행한다. `mac_only`는 끈다.
 3. plan job이 소스 tag·commit·공개키를 확인한다. 공개 피드 레포에 draft를 생성한다. draft 본문에는 소스 commit과 `mac_only` 값을 적는다. 이미 공개된 릴리스는 수정하지 않는다.
-4. Mac job이 arm64와 x64 앱을 Developer ID로 서명하고 공증한다. 기존 앱·DMG 검증을 유지한다. `mac.fragment.json`이 두 타깃을 묶는다.
+4. Mac job이 arm64 앱을 Developer ID로 서명하고 공증한다. 기존 앱·DMG 검증을 유지한다. `mac.fragment.json`이 Mac arm64 자산을 묶는다.
 5. Windows job이 기존 방식대로 macOS에서 NSIS x64 설치 파일을 만든다. 보호된 `release` environment의 키를 임시 파일에 기록한다. `minisign -S -l -s <임시 키 파일> -m <설치 파일> -t <trusted comment>`로 plain `.minisig`를 만든다. trusted comment의 `version:<version>`을 서명한다. 개인키는 step 종료 시 삭제한다. `u3-release.mjs fragment windows`가 legacy `Ed` 서명 검증 뒤 `windows.fragment.json`을 만든다. `ED` 서명은 artifact 업로드 전에 거부한다.
 6. publish job이 두 fragment의 버전·소스 commit·파일 목록·SHA-256을 확인한다. 피드의 SHA-512와 크기, Windows legacy `Ed` 서명과 서명된 버전도 확인한다. `ED` 서명은 공개 피드 업로드 전에 거부한다. `SHA256SUMS.txt`를 만든다.
 7. publish job이 draft에 자산을 업로드한다. 자산을 다시 받아 같은 검증을 실행한다. 실패한 실행의 남은 파일도 확인한다. 모두 통과하면 draft를 latest로 공개한다. 실패하면 이전 latest를 유지한다.
@@ -42,7 +44,7 @@ Windows job은 설치 파일을 만들기 전에 Electron에서 legacy `Ed` 통�
 
 ## 긴급 Mac 릴리스
 
-Actions에서 기존 소스 tag와 `mac_only: true`를 지정한다. Mac 두 타깃만 빌드한다. publish job은 Mac fragment만 허용한다. Windows 피드와 설치 파일이 섞이면 공개하지 않는다. 릴리스 노트에 Windows 미포함을 기록한다. Windows 앱은 피드 404를 `unavailable`로 표시한다. 이 릴리스에서는 Windows를 업데이트하지 않는다. 이후 정상 릴리스는 더 높은 버전으로 만든다.
+Actions에서 기존 소스 tag와 `mac_only: true`를 지정한다. Mac arm64만 빌드한다. publish job은 Mac fragment만 허용한다. Windows 피드와 설치 파일이 섞이면 공개하지 않는다. 릴리스 노트에 Windows 미포함을 기록한다. Windows 앱은 피드 404를 `unavailable`로 표시한다. 이 릴리스에서는 Windows를 업데이트하지 않는다. 이후 정상 릴리스는 더 높은 버전으로 만든다.
 
 ## 피드와 서명
 
@@ -51,7 +53,6 @@ Actions에서 기존 소스 tag와 `mac_only: true`를 지정한다. Mac 두 타
 | 타깃 | updater channel | Release asset |
 |---|---|---|
 | Mac arm64 | `latest-arm64` | `latest-arm64-mac.yml` |
-| Mac x64 | `latest-x64` | `latest-x64-mac.yml` |
 | Windows x64 | `latest-win-x64` | `latest-win-x64.yml` |
 
 Mac provider가 채널 뒤에 `-mac`을 붙인다. 앱의 beta 선택은 같은 타깃별 `beta-*` 이름을 사용한다. 이번 workflow는 stable 피드만 발행한다. beta 피드가 없으면 업데이트 확인이 `unavailable`로 끝난다. 채널 변경은 downgrade를 허용하지 않는다.

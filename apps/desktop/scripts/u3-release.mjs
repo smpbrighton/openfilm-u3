@@ -25,12 +25,12 @@ async function digest(file, algorithm = 'sha256', encoding = 'hex') {
 }
 
 async function platformAssets(platform, version, dir, publicKey) {
-  const channels = platform === 'mac' ? ['latest-arm64-mac.yml', 'latest-x64-mac.yml'] : platform === 'windows' ? ['latest-win-x64.yml'] : fail('Invalid release platform');
+  const channels = platform === 'mac' ? ['latest-arm64-mac.yml'] : platform === 'windows' ? ['latest-win-x64.yml'] : fail('Invalid release platform');
   const assets = new Set(channels);
   for (const channel of channels) {
     const info = load(readFileSync(join(dir, channel), 'utf8'));
     if (info?.version !== version || !Array.isArray(info.files) || !info.files.length) fail('Feed version or files are missing');
-    const suffix = platform === 'mac' ? channel.includes('arm64') ? 'arm64' : 'x64' : 'x64';
+    const suffix = platform === 'mac' ? 'arm64' : 'x64';
     const extensions = new Set();
     for (const file of info.files) {
       if (!safeName(file.url) || !file.url.includes(suffix) || !/\.(zip|dmg|exe)$/.test(file.url)) fail('Invalid feed asset name');

@@ -22,6 +22,7 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 - 외부: smpbrighton 계열 GitHub Releases, whisper.cpp 바이너리, Hugging Face 모델(bge-m3, whisper ggml).
 
 ## 제약
+- 공개 릴리스 대상은 Mac arm64 와 Windows x64 다. Intel Mac 은 지원하지 않는다.
 - openfilm 은 MIT 다. `TRADEMARK.md` 는 수정본을 "OpenFilm" 또는 혼동되는 이름으로 부르는 것을 금지한다. 공개나 배포 전에 이름과 로고를 바꾼다.
 - 레포는 비공개 복제본이다. 원격 `upstream` 이 openfilm 이고 `git fetch upstream` 으로 변경을 받는다. 병합 비용을 낮게 유지한다(0003).
 - 데스크톱은 Electron 44, electron-updater 6.8.9, electron-builder 26.15.3 이다.
