@@ -217,7 +217,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # Linux onnxruntime-node 1.22 postinstall fetches CUDA binaries and fails; publish never loads onnxruntime.
       - run: pnpm install --frozen-lockfile
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
       - uses: actions/download-artifact@v4
         with:
           pattern: desktop-*
