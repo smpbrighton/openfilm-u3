@@ -48,3 +48,13 @@ Track: lite.
 
 ## 롤백
 병합을 revert 한다. 그러면 Windows 앱은 다시 「whisper-cli 를 찾지 못했다」고 알린다. Rosetta 는 남는다(지우지 않는다).
+
+## 계획 변경 (1단계 중단 뒤)
+- codex 가 1단계에서 멈췄다. 공식 `whisper-bin-x64.zip` 의 `whisper-cli.exe`·`whisper.dll`·`ggml.dll`·`ggml-base.dll` 이 zip 에 없는 `MSVCP140.dll`, `VCRUNTIME140.dll`, `VCRUNTIME140_1.dll`, `VCOMP140.DLL` 을 import 한다. zip 에는 LICENSE 도 없다. 증거는 세션 scratchpad 의 `010-evidence/pe-imports.txt` 다.
+- 사용자 답: 「CI 에서 정적 빌드」. 공식 zip 은 쓰지 않는다. 위 「출처」·「MSVC 런타임」 항목과 순서 1·4 의 zip 관련 내용은 이 절이 대체한다.
+- 빌드: GitHub `windows-latest` runner 에서 whisper.cpp v1.9.5 소스(tar SHA-256 `ff1a9053…1720`, Mac 과 같은 소스)를 MSVC 로 빌드한다. 옵션은 `BUILD_SHARED_LIBS=OFF`, `CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded`(정적 CRT), `GGML_OPENMP=OFF`, `GGML_NATIVE=OFF` 다. 결과는 `whisper-cli.exe` 하나다. 사용자에게 보이는 동작: AVX2 가 없는 CPU(2013년 이전)에서는 Windows 로컬 자막이 동작하지 않는다.
+- 검사(job 안): `dumpbin /dependents` 결과에 Windows 시스템 DLL 만 있어야 한다. ggml tiny 모델로 소스의 `samples/jfk.wav` 를 받아써서 출력을 확인한다. 실패하면 올리지 않는다.
+- 배포: Mac 과 같은 비공개 prerelease `whisper-cli-1.9.5` 에 `whisper-cli-win32-x64.exe` 를 올린다. 이미 있으면 덮지 않고 실패한다. LICENSE 는 같은 소스이므로 기존 asset 을 같이 쓴다.
+- 실행 순서:
+  - A단계: `u3/scripts/build-whisper-windows.ps1`(new)와 `.github/workflows/u3-whisper-windows.yml`(new, `workflow_dispatch` 만)를 만든다. 세션이 main 에 병합하고 workflow 를 한 번 실행한다. GitHub 은 기본 브랜치의 workflow 만 수동 실행하기 때문이다.
+  - B단계: 올린 asset 의 SHA-256 을 `u3-whisper-runtime.mjs` 의 win32-x64 타깃에 고정한다. 받기 경로는 Mac 과 같은 비공개 gh 경로다. 그다음 테스트, `main.mjs`, README, Rosetta, Windows 설치 파일 빌드, Mac 회귀, verify 를 한다(원래 순서 2–6).
