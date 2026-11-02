@@ -175,6 +175,44 @@ test('u3 sfx precedence, UTF-8 FNV-1a, id ordering, source hash seed, lengths an
   assert.ok(!clips(p, 'sfx').some(c => /intro/.test(c.id)));
 });
 
+for (const [name, options, candidates, expectedAt] of [
+  ['before', { memeBefore: true }, [a, b], 2],
+  ['after', { memeAfter: true }, [a, b], 3],
+  ['both', { memeBefore: true, memeAfter: true }, [a, b], 2],
+  ['alternate shortage', { memeBefore: true, memeAfter: true }, [a], 3],
+  ['missing-input fallback', { reaction: null }, [a], 3],
+  ['short meme', { memeAfter: true }, [meme('short', { durationSec: 0.6 })], 4.4],
+  ['no meme', {}, [], 2],
+]) {
+  test(`sfx starts with the first placed meme, or the scene without one: ${name}`, () => {
+    const scenes = [scene({ reaction: null }), scene({ inputIndex: 2, endSec: 3, ...options })];
+    const sounds = [sound('laugh', 'laugh', 1.5)];
+    const compile = () => planFilm(table(scenes), library(candidates, sounds), (_, i) => i === 1 ? candidates : [], { stage });
+    const p = compile();
+    const effect = p.receipt.sfx.find(s => s.scene === 2);
+    const firstMeme = p.receipt.memes.find(m => m.scene === 2);
+    assert.equal(effect.at, expectedAt);
+    assert.equal(effect.at, firstMeme?.at ?? 2);
+    assert.equal(clips(p, 'sfx').find(c => c.id === 'make-sfx-2').at, expectedAt);
+    assert.deepEqual(compile(), p, 'identical inputs produce identical timing and selections');
+  });
+}
+
+test('delayed sfx may cross a scene boundary; overlapping sounds get separate lanes and repeat identically', async t => {
+  const root = await project(t);
+  const scenes = [scene({ endSec: 3, memeAfter: true }), scene({ inputIndex: 2, memeBefore: true })];
+  const candidates = [meme('short-a', { durationSec: 0.4 }), meme('short-b', { durationSec: 0.4 })];
+  const p = plan(scenes, candidates, [sound('laugh', 'laugh', 1.5)]);
+  assert.deepEqual(p.receipt.sfx.map(s => [s.at, s.dur]), [[2.6, 1.5], [3, 1.5]]);
+  assert.equal(tracks(p, 'sfx').length, 2);
+  await applyMake(root, p);
+  const bytes = await readFile(join(root, 'film.html'), 'utf8');
+  const written = (await film(root)).tracks.flatMap(t => t.clips).filter(c => c.attrs?.['data-u3-make'] === 'sfx');
+  assert.deepEqual(written.map(c => c.at).sort((a, b) => a - b), [2.6, 3]);
+  await applyMake(root, plan(scenes, candidates, [sound('laugh', 'laugh', 1.5)]));
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), bytes);
+});
+
 test('make reruns byte-for-byte on a hand-written film without an explicit body', async t => {
   const root = await project(t);
   await writeFile(join(root, 'film.html'), '<meta name="viewport" content="width=1080, height=1920">\n');

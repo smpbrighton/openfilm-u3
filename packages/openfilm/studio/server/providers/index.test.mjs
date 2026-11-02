@@ -8,7 +8,7 @@ import { chooseProvider, listProviders, shownChoices } from './index.mjs';
 before(() => {
   /* this machine's own keys must not decide these */
   process.env.OPENFILM_HOME = mkdtempSync(join(tmpdir(), 'of-routing-'));
-  for (const name of ['ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY', 'FAL_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'BRAVE_API_KEY', 'TAVILY_API_KEY', 'GROQ_API_KEY', 'AZURE_SPEECH_KEY', 'DOUBAO_ASR_API_KEY', 'MIMO_API_KEY', 'KEENABLE_API_KEY']) delete process.env[name];
+  for (const name of ['ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY', 'FAL_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'BRAVE_API_KEY', 'TAVILY_API_KEY', 'GROQ_API_KEY', 'AZURE_SPEECH_KEY', 'DOUBAO_ASR_API_KEY', 'MIMO_API_KEY', 'KEENABLE_API_KEY', 'OPENFILM_U3_WHISPER_KEY', 'OPENFILM_U3_LIBRARY_KEY']) delete process.env[name];
 });
 
 const settings = (keys = {}, use = {}) => ({ keys, use, model: {} });
@@ -79,10 +79,26 @@ test('Settings shows a choice only while its provider has a key; the choice itse
 });
 
 test('local Whisper connects without a key and offers the pinned ASR model', async () => {
-  const provider = await chooseProvider('asr', { via: 'u3-whisper', settings: settings({ 'u3-whisper': '' }) });
+  const provider = await chooseProvider('asr', { via: 'u3-whisper', settings: settings() });
   assert.equal(provider.local, true);
   assert.equal(provider.keyless, true);
   assert.deepEqual(provider.models.asr, [{ id: 'large-v3-turbo-q5_0', name: 'whisper large-v3-turbo' }]);
-  assert.equal(await chooseProvider('asr', { settings: settings({}, { asr: 'u3-whisper' }) }), null);
+  assert.equal(await id(chooseProvider('asr', { settings: settings({}, { asr: 'u3-whisper' }) })), 'u3-whisper');
   assert.equal(listProviders().find((p) => p.id === 'u3-library').local, true);
+});
+
+test('local Whisper is the default ASR only without a saved choice and while connected', async () => {
+  assert.equal(await id(chooseProvider('asr', { settings: settings() })), 'u3-whisper');
+  assert.equal(shownChoices(settings()).use.asr, 'u3-whisper');
+  assert.equal(shownChoices(settings()).model.asr, 'large-v3-turbo-q5_0');
+  const chosen = settings({ openai: 'sk-test-12345678' }, { asr: 'openai' });
+  assert.equal(await id(chooseProvider('asr', { settings: chosen })), 'openai');
+  assert.equal(shownChoices(chosen).use.asr, 'openai');
+  assert.equal(await chooseProvider('asr', { settings: settings({}, { asr: 'openai' }) }), null, 'an unavailable saved choice is not replaced');
+  const off = { ...settings(), off: ['u3-whisper'] };
+  assert.equal(await chooseProvider('asr', { settings: off }), null);
+  assert.equal(shownChoices(off).use.asr, null);
+  await assert.rejects(chooseProvider('asr', { via: 'u3-whisper', settings: off }), /not connected/);
+  assert.equal(await id(chooseProvider('sfx', { via: 'u3-library', settings: settings() })), 'u3-library');
+  assert.equal(await id(chooseProvider('meme', { via: 'u3-library', settings: settings() })), 'u3-library');
 });

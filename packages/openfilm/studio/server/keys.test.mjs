@@ -14,7 +14,7 @@ before(async () => {
   const scratch = mkdtempSync(join(tmpdir(), 'of-keys-'));
   process.env.OPENFILM_HOME = join(scratch, 'home');
   process.env.OPENFILM_LIBRARY = join(scratch, 'library');
-  for (const name of ['ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY', 'FAL_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'BRAVE_API_KEY', 'TAVILY_API_KEY', 'GROQ_API_KEY', 'AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION', 'KEENABLE_API_KEY']) delete process.env[name];
+  for (const name of ['ELEVENLABS_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'GOOGLE_API_KEY', 'FAL_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'BRAVE_API_KEY', 'TAVILY_API_KEY', 'GROQ_API_KEY', 'AZURE_SPEECH_KEY', 'AZURE_SPEECH_REGION', 'KEENABLE_API_KEY', 'OPENFILM_U3_WHISPER_KEY', 'OPENFILM_U3_LIBRARY_KEY']) delete process.env[name];
   studio = await startStudio({ port: 0, openBrowser: (url) => opened.push(url) });
 });
 after(() => studio.close());
@@ -61,6 +61,44 @@ test('a keyless provider connected without a key has the key \'\'; the environme
 test('a pasted key is trimmed, and refused when it is not one key', () => {
   assert.equal(cleanKey('  sk-0123456789 \n'), 'sk-0123456789');
   for (const bad of ['', 'short', 'two keys-0123456789', 42, null]) assert.throws(() => cleanKey(bad));
+});
+
+test('only keyless local providers connect by default, and off disables them even with an environment key', () => {
+  const empty = { keys: {}, use: {}, model: {}, off: [] };
+  for (const provider of listProviders().filter(p => p.local)) {
+    assert.deepEqual(providerKey(provider, empty, {}), { key: '', source: 'file', env: provider.env });
+    const off = { ...empty, off: [provider.id] };
+    assert.equal(providerKey(provider, off, {}), null);
+    assert.equal(providerKey(provider, off, { [provider.env]: 'ignored-env-key' }), null);
+  }
+  assert.equal(providerKey({ id: 'keyed-local', env: 'KEYED_LOCAL_KEY', local: true }, empty, {}), null);
+  assert.equal(providerKey({ id: 'keenable', env: 'KEENABLE_API_KEY', keyless: true }, empty, {}), null);
+});
+
+test('fresh Studio shows local providers connected; disconnect survives rereads and reconnect works without a key', async () => {
+  const previous = process.env.OPENFILM_HOME;
+  process.env.OPENFILM_HOME = mkdtempSync(join(tmpdir(), 'of-local-keys-'));
+  try {
+    const initial = await (await api('/api/providers')).json();
+    assert.equal(initial.use.asr, 'u3-whisper');
+    for (const id of ['u3-whisper', 'u3-library']) {
+      const local = initial.providers.find(p => p.id === id);
+      assert.deepEqual([local.local, local.keyless, local.source, local.last4], [true, true, 'file', null]);
+      assert.equal((await readSettings()).keys[id], undefined, 'no fabricated saved key');
+      const removed = await api(`/api/providers/${id}/key`, { method: 'DELETE' });
+      assert.equal(removed.status, 200);
+      assert.equal((await removed.json()).providers.find(p => p.id === id).source, null);
+      assert.ok((await readSettings()).off.includes(id));
+      const reread = await (await api('/api/providers')).json();
+      assert.equal(reread.providers.find(p => p.id === id).source, null);
+      if (id === 'u3-whisper') assert.equal(reread.use.asr, null);
+      const added = await api(`/api/providers/${id}/key`, { method: 'PUT', body: { key: '' } });
+      assert.equal(added.status, 200);
+      assert.equal((await added.json()).providers.find(p => p.id === id).source, 'file');
+      assert.ok(!(await readSettings()).off.includes(id));
+    }
+    assert.equal(initial.providers.find(p => p.id === 'keenable').source, null);
+  } finally { process.env.OPENFILM_HOME = previous; }
 });
 
 test('the providers API: keys go in and never come back out; choices for each kind of media', async () => {

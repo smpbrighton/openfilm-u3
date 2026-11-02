@@ -252,10 +252,10 @@ test('asr: the speech alone is sent, its transcript lands beside the recording, 
   assert.equal(transcribed(), 2, '--force transcribes again');
 });
 
-test('asr: local u3 Whisper lands a Korean word transcript and respects skip and force', async () => {
+test('asr: fresh local u3 Whisper lands a Korean word transcript without connecting, and respects skip and force', async () => {
   const root = project();
   writeFileSync(join(root, 'talk.wav'), wav(new Uint8Array(64000), 16000));
-  await changeSettings((s) => { s.keys['u3-whisper'] = ''; s.use.asr = 'u3-whisper'; });
+  rmSync(providersFile());
   const registered = listProviders().find((p) => p.id === 'u3-whisper');
   const original = registered.run;
   let runs = 0;
@@ -462,8 +462,9 @@ test('openfilm get: what can be got here, connected, partly or not at all; wrong
     const withWeb = spawnSync(process.execPath, [bin, 'get'], { cwd: scratch, env: { ...env, OPENFILM_GET_WEB: '1' }, encoding: 'utf8' });
     assert.equal(withWeb.stdout, `${[...listing(Object.keys(VERBS).filter(v => v === 'make' || v === 'subtitles' || made(v))), '', services()].join('\n')}\n`);
 
-    /* nothing connected: no verbs, what to do instead */
+    /* local Whisper explicitly disconnected: no media verbs, what to do instead */
     rmSync(providersFile());
+    await changeSettings(s => { s.off = ['u3-whisper', 'u3-library']; });
     const nothing = get(scratch);
     assert.equal(nothing.status, 0, nothing.stderr);
     assert.equal(nothing.stdout, `${listing(['make', 'subtitles']).join('\n')}\n\n` + 'Nothing is connected for media here: each kind works only once the person connects a service that makes it (below). '
@@ -502,8 +503,9 @@ test('openfilm get: what can be got here, connected, partly or not at all; wrong
   }
 });
 
-test('nothing connected: local subtitles, and a note naming only what the services make', async () => {
+test('nothing connected, with locals disconnected: local subtitles, and a note naming only what the services make', async () => {
   rmSync(providersFile());
+  await changeSettings(s => { s.off = ['u3-whisper', 'u3-library']; });
   const { verbs, note } = await catalog();
   assert.deepEqual(verbs.map(v => v.verb), ['make', 'subtitles']);
   assert.match(note, new RegExp(`\\(${Object.keys(VERBS).filter((v) => !WEB_VERBS.includes(v) && made(v)).join(', ')}\\)`));
