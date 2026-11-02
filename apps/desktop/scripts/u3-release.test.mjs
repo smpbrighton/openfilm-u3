@@ -12,7 +12,7 @@ const publicKey = readFileSync(fixture('test.pub'), 'utf8');
 async function release(t, macOnly = false) {
   const dir = mkdtempSync(join(tmpdir(), 'u3-release-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
-  for (const target of macOnly ? ['arm64-mac', 'x64-mac'] : ['arm64-mac', 'x64-mac', 'win-x64']) {
+  for (const target of macOnly ? ['arm64-mac'] : ['arm64-mac', 'win-x64']) {
     const files = [];
     for (const ext of target.startsWith('win') ? ['exe'] : ['zip', 'dmg']) {
       const name = `OpenFilm-${target}.${ext}`;
@@ -49,6 +49,16 @@ test('Mac-only succeeds with no Windows feed; accidental Windows assets prevent 
   writeFileSync(join(dir, 'latest-win-x64.yml'), 'stale');
   await assert.rejects(checkRelease(version, commit, dir, { macOnly: true }), /Unexpected/);
 });
+
+for (const macOnly of [false, true]) {
+  for (const name of ['latest-x64-mac.yml', 'OpenFilm-x64-mac.dmg']) {
+    test(`${macOnly ? 'Mac-only' : 'normal'} publication rejects an unexpected Intel Mac asset: ${name}`, async (t) => {
+      const dir = await release(t, macOnly);
+      writeFileSync(join(dir, name), 'stale Intel Mac asset');
+      await assert.rejects(checkRelease(version, commit, dir, { macOnly, publicKey }), /Unexpected release asset/);
+    });
+  }
+}
 
 test('unsigned or wrong-version Windows installers cannot produce a fragment', async (t) => {
   const dir = await release(t);
