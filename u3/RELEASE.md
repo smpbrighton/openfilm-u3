@@ -2,11 +2,11 @@
 
 소스는 비공개 `smpbrighton/openfilm-u3`에 둔다. 설치 파일·업데이트 피드·서명·검증 fragment만 공개 [smpbrighton/u3-studio-releases](https://github.com/smpbrighton/u3-studio-releases)에 올린다. 소스 레포의 `desktop` workflow가 공개를 담당한다. 공개 레포는 README만 준비한 상태다.
 
-## 현재 배포 차단
+## Windows 서명 형식
 
-로컬 macOS에서 잠금 파일의 Electron 44.9.3 내장 Node 24.22.0으로 확인했다. Ed25519 검증은 통과했지만 `blake2b512`는 지원하지 않았다. 따라서 원본 `Ed` fixture는 통과하고, 기본 minisign 형식인 prehash `ED` fixture는 `Digest method not supported`로 실패한다. 시스템 Node의 테스트 통과만으로 Electron의 prehash 업데이트 검증을 증명하지 못한다. Windows 실기기에서는 아직 확인하지 않았다.
+[결정 0011](../architecture/decisions/0011-windows-update-legacy-ed.md)에 따라 Windows 설치 파일은 `minisign -S -l`로 서명한다. 앱은 legacy `Ed` 서명만 받는다. 기본 minisign이 만드는 prehash `ED` 서명은 명확한 오류 문장으로 거부한다. payload 서명과 trusted comment 서명은 Node 내장 `crypto`의 Ed25519로 검증한다. BLAKE2b와 새 암호 의존성은 쓰지 않는다. 검증할 때 설치 파일 전체를 메모리로 읽는다.
 
-Windows job은 설치 파일을 만들기 전에 Electron fixture 테스트를 실행한다. 이 테스트가 실패하면 정상 릴리스를 공개하지 않는다. 실제 키와 secrets를 등록해도 이 차단은 해제되지 않는다. Node `crypto`만 사용하는 현재 plan 밖의 대체 해시 구현이나 의존성은 추가하지 않았다. prehash 검증을 Electron에서 통과시키는 설계를 먼저 결정하고 검증해야 한다.
+Windows job은 설치 파일을 만들기 전에 Electron에서 legacy `Ed` 통과와 `ED` 거부 테스트를 실행한다. 이 테스트가 실패하면 정상 릴리스를 공개하지 않는다. Windows fragment 생성 전과 공개 피드 업로드 전에도 앱과 같은 검증기로 알고리즘이 `Ed`인지 확인한다. 이 검증은 서명·trusted comment·서명된 버전까지 확인한다.
 
 ## 첫 릴리스 전 준비
 
@@ -34,8 +34,8 @@ Windows job은 설치 파일을 만들기 전에 Electron fixture 테스트를 �
 2. 소스 tag를 배포하거나 Actions에서 기존 tag를 입력하여 `desktop` workflow를 실행한다. `mac_only`는 끈다.
 3. plan job이 소스 tag·commit·공개키를 확인한다. 공개 피드 레포에 draft를 생성한다. draft 본문에는 소스 commit과 `mac_only` 값을 적는다. 이미 공개된 릴리스는 수정하지 않는다.
 4. Mac job이 arm64와 x64 앱을 Developer ID로 서명하고 공증한다. 기존 앱·DMG 검증을 유지한다. `mac.fragment.json`이 두 타깃을 묶는다.
-5. Windows job이 기존 방식대로 macOS에서 NSIS x64 설치 파일을 만든다. 보호된 `release` environment의 키를 임시 파일에 기록한다. 설치 파일에 plain `.minisig`를 만든다. trusted comment의 `version:<version>`을 서명한다. 개인키는 step 종료 시 삭제한다. `windows.fragment.json`이 설치 파일과 서명을 묶는다.
-6. publish job이 두 fragment의 버전·소스 commit·파일 목록·SHA-256을 확인한다. 피드의 SHA-512와 크기, Windows 서명과 서명된 버전도 확인한다. `SHA256SUMS.txt`를 만든다.
+5. Windows job이 기존 방식대로 macOS에서 NSIS x64 설치 파일을 만든다. 보호된 `release` environment의 키를 임시 파일에 기록한다. `minisign -S -l -s <임시 키 파일> -m <설치 파일> -t <trusted comment>`로 plain `.minisig`를 만든다. trusted comment의 `version:<version>`을 서명한다. 개인키는 step 종료 시 삭제한다. `u3-release.mjs fragment windows`가 legacy `Ed` 서명 검증 뒤 `windows.fragment.json`을 만든다. `ED` 서명은 artifact 업로드 전에 거부한다.
+6. publish job이 두 fragment의 버전·소스 commit·파일 목록·SHA-256을 확인한다. 피드의 SHA-512와 크기, Windows legacy `Ed` 서명과 서명된 버전도 확인한다. `ED` 서명은 공개 피드 업로드 전에 거부한다. `SHA256SUMS.txt`를 만든다.
 7. publish job이 draft에 자산을 업로드한다. 자산을 다시 받아 같은 검증을 실행한다. 실패한 실행의 남은 파일도 확인한다. 모두 통과하면 draft를 latest로 공개한다. 실패하면 이전 latest를 유지한다.
 
 피드 레포의 Git tag는 소스 commit을 가리키지 않는다. 별도 레포이기 때문이다. 소스 commit은 두 fragment와 draft 본문으로 묶는다. 재실행은 같은 tag·소스 commit·`mac_only` 값의 draft만 사용한다. 공개된 릴리스는 새 버전으로 대체한다.
@@ -64,4 +64,4 @@ Tauri의 `.sig`는 minisign 텍스트를 다시 base64로 포장한다. 이 앱�
 
 `node --test apps/desktop/src/u3-minisign.test.mjs apps/desktop/src/u3-update-verify.test.mjs apps/desktop/src/update-channel.test.mjs apps/desktop/scripts/u3-release.test.mjs`로 보안 경계와 fragment 검증을 실행한다. 시험 fixture는 `apps/desktop/fixtures/u3-minisign/`에 있다. 실제 서명 키가 없으며 앱의 `src/` 패키징에 포함하지 않는다.
 
-`cd apps/desktop` 뒤 `ELECTRON_RUN_AS_NODE=1 pnpm exec electron --test src/u3-minisign.test.mjs src/u3-update-verify.test.mjs`로 Electron 내장 Node에서도 fixture 테스트를 실행한다. 현재 결과는 11건 중 7건 통과·4건 실패다. Electron의 암호 구현은 시스템 Node와 다르다. 실제 릴리스·Developer ID 공증·Windows 실기기의 이전 버전에서 새 버전으로 업데이트는 위 배포 차단 해결과 실제 키·secrets 등록 뒤 확인한다. Windows SmartScreen의 첫 설치 경고는 minisign으로 제거되지 않는다. electron-updater는 설치 직전에 파일을 다시 검증하지 않는다. 다운로드 캐시 파일 교체 위협은 결정 0002에 따라 OS 사용자 권한 경계에 맡긴다.
+`cd apps/desktop` 뒤 `ELECTRON_RUN_AS_NODE=1 pnpm exec electron --test src/u3-minisign.test.mjs src/u3-update-verify.test.mjs`로 Electron 내장 Node에서도 fixture 테스트를 실행한다. legacy `Ed` 통과와 `ED` 거부를 포함한 모든 테스트가 통과해야 한다. 실제 릴리스·Developer ID 공증·Windows 실기기의 이전 버전에서 새 버전으로 업데이트는 실제 키·secrets 등록 뒤 확인한다. Windows SmartScreen의 첫 설치 경고는 minisign으로 제거되지 않는다. electron-updater는 설치 직전에 파일을 다시 검증하지 않는다. 다운로드 캐시 파일 교체 위협은 결정 0011이 유지한 OS 사용자 권한 경계에 맡긴다.

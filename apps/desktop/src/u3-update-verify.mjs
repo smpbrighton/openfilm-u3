@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, posix } from 'node:path';
-import { signedVersion, verifyMinisignFile } from './u3-minisign.mjs';
+import { PrehashedMinisignError, signedVersion, verifyMinisignFile } from './u3-minisign.mjs';
 
 const require = createRequire(import.meta.url);
 const buildProduct = () => JSON.parse(readFileSync(join(dirname(require.resolve('openfilm/package.json')), 'product.json'), 'utf8'));
@@ -40,6 +40,8 @@ export function createWindowsUpdateVerifier(updater, { product = buildProduct(),
       const comment = await verifyMinisignFile(path, Buffer.concat(chunks).toString('utf8'), publicKey);
       if (signedVersion(comment) !== target.version) return 'Update signed version does not match';
       return null;
-    } catch { return 'Update signature verification failed'; }
+    } catch (error) {
+      return error instanceof PrehashedMinisignError ? error.message : 'Update signature verification failed';
+    }
   };
 }

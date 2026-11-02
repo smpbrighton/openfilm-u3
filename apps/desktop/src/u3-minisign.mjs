@@ -1,7 +1,10 @@
-/** Plain minisign, including the signature over the trusted comment. No external crypto/runtime dependency. */
-import { createHash, createPublicKey, verify } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+/** Legacy Ed minisign, including the trusted comment. Only Node's built-in Ed25519 is required. */
+import { createPublicKey, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+
+export class PrehashedMinisignError extends Error {
+  constructor() { super('Prehashed minisign ED signatures are not supported. Use a legacy Ed signature.'); }
+}
 
 function decode(text, size) {
   if (typeof text !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(text)) throw new Error('Invalid minisign base64');
@@ -20,13 +23,15 @@ function parse(publicKey, signature) {
   if (lines.length !== 4 || !lines[0].startsWith('untrusted comment: ') || !lines[2].startsWith('trusted comment: ')) throw new Error('Invalid minisign signature');
   const packet = decode(lines[1], 74);
   const algorithm = packet.subarray(0, 2).toString();
-  if (!['Ed', 'ED'].includes(algorithm) || !pk.subarray(2, 10).equals(packet.subarray(2, 10))) throw new Error('Minisign key mismatch');
+  if (algorithm === 'ED') throw new PrehashedMinisignError();
+  if (algorithm !== 'Ed') throw new Error('Invalid minisign signature algorithm');
+  if (!pk.subarray(2, 10).equals(packet.subarray(2, 10))) throw new Error('Minisign key mismatch');
   const comment = lines[2].slice('trusted comment: '.length);
   if (/[\x00-\x08\x0a-\x1f\x7f]/.test(comment)) throw new Error('Invalid trusted comment');
   const key = createPublicKey({ key: Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), pk.subarray(10)]), format: 'der', type: 'spki' });
   const sig = packet.subarray(10);
   if (!verify(null, Buffer.concat([sig, Buffer.from(comment, 'utf8')]), key, decode(lines[3], 64))) throw new Error('Invalid trusted comment signature');
-  return { algorithm, comment, key, sig };
+  return { comment, key, sig };
 }
 
 function verifyPayload(data, parsed) {
@@ -36,16 +41,13 @@ function verifyPayload(data, parsed) {
 
 export function verifyMinisign(data, signature, publicKey) {
   const parsed = parse(publicKey, signature);
-  return verifyPayload(parsed.algorithm === 'ED' ? createHash('blake2b512').update(data).digest() : data, parsed);
+  return verifyPayload(data, parsed);
 }
 
-/** Modern minisign streams large installers into Blake2b; legacy Ed requires the original bytes. */
+/** Reject unsupported signatures before reading the full legacy Ed payload into memory. */
 export async function verifyMinisignFile(path, signature, publicKey) {
   const parsed = parse(publicKey, signature);
-  if (parsed.algorithm === 'Ed') return verifyPayload(await readFile(path), parsed);
-  const hash = createHash('blake2b512');
-  for await (const chunk of createReadStream(path)) hash.update(chunk);
-  return verifyPayload(hash.digest(), parsed);
+  return verifyPayload(await readFile(path), parsed);
 }
 
 export function signedVersion(comment) {

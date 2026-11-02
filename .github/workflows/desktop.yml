@@ -159,7 +159,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: brew install minisign
-      - name: Verify signatures with Electron's Node runtime
+      - name: Verify legacy Ed acceptance and ED rejection with Electron
         working-directory: apps/desktop
         run: ELECTRON_RUN_AS_NODE=1 pnpm exec electron --test src/u3-minisign.test.mjs src/u3-update-verify.test.mjs
       - name: Build Windows installer
@@ -167,7 +167,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: npm run release -- --official --platform=win --arch=x64
-      - name: Sign Windows installer and bind its version
+      - name: Sign Windows installer with legacy Ed and bind its version
         env:
           U3_WINDOWS_MINISIGN_KEY: ${{ secrets.U3_WINDOWS_MINISIGN_KEY }}
           U3_WINDOWS_MINISIGN_PASSWORD: ${{ secrets.U3_WINDOWS_MINISIGN_PASSWORD }}
@@ -186,7 +186,7 @@ jobs:
           out=apps/desktop/.release/win-x64/out
           for file in "$out"/*.exe; do
             comment="$(printf 'version:%s\tfile:%s' "$VERSION" "${file##*/}")"
-            printf '%s\n' "$U3_WINDOWS_MINISIGN_PASSWORD" | minisign -S -s "$KEY_FILE" -m "$file" -t "$comment" > /dev/null
+            printf '%s\n' "$U3_WINDOWS_MINISIGN_PASSWORD" | minisign -S -l -s "$KEY_FILE" -m "$file" -t "$comment" > /dev/null
             cp "$file" "$file.minisig" upload/
           done
           for file in "$out"/*.blockmap; do

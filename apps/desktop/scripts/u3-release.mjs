@@ -42,7 +42,9 @@ async function platformAssets(platform, version, dir, publicKey) {
       extensions.add(ext); assets.add(file.url);
       if (platform === 'windows') {
         const sig = `${file.url}.minisig`;
-        const comment = await verifyMinisignFile(join(dir, file.url), readFileSync(join(dir, sig), 'utf8'), publicKey);
+        const signature = readFileSync(join(dir, sig), 'utf8');
+        // The app's shared verifier permits only legacy Ed, before fragment upload and release publication (0011).
+        const comment = await verifyMinisignFile(join(dir, file.url), signature, publicKey);
         if (signedVersion(comment) !== version) fail('Installer signed version mismatch');
         assets.add(sig);
       }
