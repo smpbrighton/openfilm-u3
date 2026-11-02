@@ -2,7 +2,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { FLAVORS, flavorName } from './flavor.mjs';
+
+test('u3 Studio names and bundle IDs identify release, preview, dev and bench separately', () => {
+  for (const [name, suffix] of [['release', ''], ['preview', ' Preview'], ['dev', ' Dev']]) {
+    assert.equal(FLAVORS[name].productName, `u3 Studio${suffix}`);
+    assert.equal(FLAVORS[name].bundleId, `ai.brightongroup.u3studio${name === 'release' ? '' : `.${name}`}`);
+  }
+  const bench = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e',
+    `import { IDENTITY } from ${JSON.stringify(new URL('./flavor.mjs', import.meta.url).href)}; console.log(JSON.stringify(IDENTITY));`,
+  ], { encoding: 'utf8', env: { ...process.env, OPENFILM_DESKTOP_FLAVOR: 'bench', OPENFILM_BENCH_DIR: '/tmp/u3-bench' } }));
+  assert.equal(bench.productName, 'u3 Studio Bench');
+  assert.equal(bench.bundleId, 'ai.brightongroup.u3studio.bench');
+  assert.equal(bench.userData, '/tmp/u3-bench/data');
+});
 
 test('which app this is: packaged, the release unless built as the preview; from source, dev when asked', () => {
   assert.equal(flavorName({}, true, null), 'release');
