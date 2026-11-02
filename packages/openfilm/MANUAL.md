@@ -79,9 +79,10 @@ Run them in the film's folder. Each one's `--help` lists its options:
 - `npx openfilm look`: a contact sheet of the whole film with its sound, and a check that the same t draws the same picture. `look 4.5` is one frame at full size, `look 3-6` a stretch, `look assets/a.mp4` a media file.
 - `npx openfilm render`: the MP4, beside film.html (30 fps unless `--fps`). Only when the person asks for the file: you check with `look`, and the person exports from Studio.
 - `npx openfilm get`: voice-over, music, sound effects, reaction memes, transcripts, images, image search, video and web search. Each kind works only once the person has connected a service that makes it, with their own key, in Studio (Settings → Providers); Studio's subtitle translation too. Run it alone to see what works now and which services make the rest. When a kind is not connected, tell the person which services make it and where they connect one. A video clip costs a lot: the person confirms it in Studio first.
+- `npx openfilm get make --scenes scenes.json`: a local u3 scene table becomes source cuts, subtitle page clips, muted memes and sound effects. No provider needed. Read `u3-make` for the JSON format. Rerunning replaces only clips marked `data-u3-make`.
 - `npx openfilm skills`: the skills this film can be made with, each a way of making a kind of film. When the person names one, or one fits what they ask, `npx openfilm skill <name>` prints it: read it whole and follow it. Its folder is only read: copy what the film uses into the project.
 
 The words of a sound or a video are a WebVTT beside it with the same name (`vo/1.wav` → `vo/1.vtt`): a cue per subtitle line, a timestamp tag at each word. Studio makes the film's subtitles from them; never draw subtitles in a page.
-u3 subtitle clips imported with `get subtitles` are the exception: their pages draw the subtitles, and Studio emits no subtitle cues for that film.
+u3 subtitle clips imported with `get subtitles` or assembled with `get make` are the exception: their pages draw the subtitles, and Studio emits no subtitle cues for that film.
 
 Media can come from `get`, any service the person uses (with its API docs and their key), or your own code. Save it under `assets/`.

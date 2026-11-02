@@ -30,8 +30,8 @@ test('u3 workflows are listed and usable, respect source precedence and on/off, 
     rmSync(root, { recursive: true, force: true });
   });
   const where = { mine: vars.OPENFILM_SKILLS, official: join(root, 'official') };
-  assert.deepEqual(listSkills(where).map(s => [s.name, s.source]), [['u3-media', 'u3'], ['u3-subtitles', 'u3']]);
-  assert.equal(usableSkills(where).length, 2);
+  assert.deepEqual(listSkills(where).map(s => [s.name, s.source]), [['u3-make', 'u3'], ['u3-media', 'u3'], ['u3-subtitles', 'u3']]);
+  assert.equal(usableSkills(where).length, 3);
   const before = readFileSync(join(bundled, 'u3-subtitles/SKILL.md'), 'utf8');
   assert.ok(skillsCommand('openfilm', { cwd: root }).lines.some(l => /u3-subtitles\s+u3/.test(l)));
   const studio = await startStudio({ port: 0, openBrowser: () => {} });
@@ -42,7 +42,7 @@ test('u3 workflows are listed and usable, respect source precedence and on/off, 
     assert.match((await res.json()).error, /read-only/);
   }
   setSkillOn('u3-subtitles', false);
-  assert.deepEqual(usableSkills(where).map(s => s.name), ['u3-media']);
+  assert.deepEqual(usableSkills(where).map(s => s.name), ['u3-make', 'u3-media']);
   setSkillOn('u3-subtitles', true);
   assert.equal(readFileSync(join(bundled, 'u3-subtitles/SKILL.md'), 'utf8'), before);
   skill(join(where.official, 'u3-subtitles'), 'u3-subtitles', 'Official override');

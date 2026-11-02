@@ -155,16 +155,20 @@ export function matchMemes(visual, memes, limit = 3, opts = {}) {
  * @template {{ id: string, emotion: string, situations: readonly string[], tagsConfirmed?: boolean, description?: string, importedAt: string }} T
  * @param {{ query: string, reaction?: string }} visual @param {readonly T[]} memes @param {number} [limit]
  * @param {{ exclude?: Iterable<string>, recent?: Iterable<string> }} [opts]
- * @param {string} [dir] @param {ReturnType<typeof memeSearchService>} [search]
+ * @param {string} [dir] @param {ReturnType<typeof memeSearchService>} [search] @param {'auto' | 'rule' | 'embedding'} [mode]
  * @returns {Promise<{ meme: T, score: number, sim?: number }[]>}
  */
-export async function rankMemes(visual, memes, limit = memes.length, opts = {}, dir = libraryDir(), search = memeSearchService()) {
+export async function rankMemes(visual, memes, limit = memes.length, opts = {}, dir = libraryDir(), search = memeSearchService(), mode = 'auto') {
   const rule = matchMemes(visual, memes, memes.length, opts);
+  if (mode === 'rule') return rule.slice(0, limit);
   const text = visual.reaction ? `${visual.reaction}: ${visual.query}` : visual.query;
   const excluded = new Set(opts.exclude ?? []);
   const available = memes.filter((m) => !excluded.has(m.id));
   const embedded = /** @type {{ id: string, sim: number }[] | null} */ (await search.search(text, available, dir));
-  if (!embedded) return rule.slice(0, limit);
+  if (!embedded) {
+    if (mode === 'embedding') throw new Error('bge-m3 검색이 실패했거나 색인을 사용할 수 없습니다');
+    return rule.slice(0, limit);
+  }
   const byId = new Map(rule.map((r) => [r.meme.id, r]));
   const similarities = new Map(embedded.map((r) => [r.id, r.sim]));
   return mergeCandidates(embedded.map((r) => r.id), rule.slice(0, 10).map((r) => r.meme.id))

@@ -378,11 +378,11 @@ test('Studio: GET /api/get lists what can be got, never who makes it; a video ru
   try {
     const api = (path, init = {}) => fetch(`${studio.origin}${path}`, { ...init, headers: { 'x-studio-key': studio.key, 'content-type': 'application/json', ...init.headers } });
     const { verbs, note } = await (await api('/api/get')).json();
-    const media = Object.entries(VERBS).filter(([verb]) => !WEB_VERBS.includes(verb) && (verb === 'subtitles' || made(verb)));
+    const media = Object.entries(VERBS).filter(([verb]) => !WEB_VERBS.includes(verb) && (verb === 'make' || verb === 'subtitles' || made(verb)));
     assert.deepEqual(verbs.map((v) => Object.keys(v)), media.map(([, spec]) => ['verb', 'help', ...(spec.dir ? ['dir'] : []), 'options']));
     assert.equal(note, null);
     /* web search and web pages too, for an agent without its own, when something makes them */
-    assert.deepEqual((await (await api('/api/get?web=1')).json()).verbs.map((v) => v.verb), Object.keys(VERBS).filter(v => v === 'subtitles' || made(v)));
+    assert.deepEqual((await (await api('/api/get?web=1')).json()).verbs.map((v) => v.verb), Object.keys(VERBS).filter(v => v === 'make' || v === 'subtitles' || made(v)));
     assert.equal(verbs.find((v) => v.verb === 'tts').options.out.required, true);
     assert.equal((await api('/api/get?verb=dance')).status, 400);
 
@@ -442,7 +442,7 @@ test('openfilm get: what can be got here, connected, partly or not at all; wrong
         `${' '.repeat(width + 4)}${Object.entries(spec.options).map(([n, o]) => flagHelp(n, o)).join(' ')}`];
     }),
   ];
-  const media = Object.keys(VERBS).filter((verb) => !WEB_VERBS.includes(verb) && (verb === 'subtitles' || made(verb)));
+  const media = Object.keys(VERBS).filter((verb) => !WEB_VERBS.includes(verb) && (verb === 'make' || verb === 'subtitles' || made(verb)));
   try {
     /* everything connected: the verbs, and nothing else */
     const listed = get(scratch);
@@ -460,21 +460,21 @@ test('openfilm get: what can be got here, connected, partly or not at all; wrong
 
     /* web search and web pages: listed for an agent without its own (OPENFILM_GET_WEB=1), when something makes them */
     const withWeb = spawnSync(process.execPath, [bin, 'get'], { cwd: scratch, env: { ...env, OPENFILM_GET_WEB: '1' }, encoding: 'utf8' });
-    assert.equal(withWeb.stdout, `${[...listing(Object.keys(VERBS).filter(v => v === 'subtitles' || made(v))), '', services()].join('\n')}\n`);
+    assert.equal(withWeb.stdout, `${[...listing(Object.keys(VERBS).filter(v => v === 'make' || v === 'subtitles' || made(v))), '', services()].join('\n')}\n`);
 
     /* nothing connected: no verbs, what to do instead */
     rmSync(providersFile());
     const nothing = get(scratch);
     assert.equal(nothing.status, 0, nothing.stderr);
-    assert.equal(nothing.stdout, `${listing(['subtitles']).join('\n')}\n\n` + 'Nothing is connected for media here: each kind works only once the person connects a service that makes it (below). '
+    assert.equal(nothing.stdout, `${listing(['make', 'subtitles']).join('\n')}\n\n` + 'Nothing is connected for media here: each kind works only once the person connects a service that makes it (below). '
       + 'Until then, make sound and pictures in code, or use a service the person has a key for (with its API docs), and save them under assets/. '
-      + `\`openfilm get <what> --help\` shows what one kind takes (${media.filter(v => v !== 'subtitles').join(', ')}).\n\n${services()}\n`);
+      + `\`openfilm get <what> --help\` shows what one kind takes (${media.filter(v => v !== 'make' && v !== 'subtitles').join(', ')}).\n\n${services()}\n`);
     assert.match(services(), /^Media services, each used with the person's own key: Brave Search \(web search\), Doubao \(transcripts\), ElevenLabs \(voice-over, sound effects, music, transcripts\), fal\.ai \(images, video, music, sound effects\), .*, Microsoft Azure \(voice-over\), .*, Tavily \(web search\), u3 Library \(sound effects, memes\), u3 Whisper \(transcripts\), Xiaomi MiMo \(voice-over, transcripts\)\. In Studio, the OpenFilm logo at the top left opens Settings/);
 
     /* partly: what is connected, then one line for the rest with the services that make each, then the services there
        are; never who makes what is connected */
     await changeSettings((s) => { s.keys.elevenlabs = 'xi-test-0123456789'; for (const v of ['tts', 'sfx', 'music', 'asr']) s.use[v] = 'elevenlabs'; });
-    const spoken = ['subtitles', 'voice', 'tts', 'sfx', 'music', 'asr'];
+    const spoken = ['make', 'subtitles', 'voice', 'tts', 'sfx', 'music', 'asr'];
     const rest = media.filter((v) => !spoken.includes(v));
     const partly = get(scratch);
     assert.equal(partly.stdout, `${[...listing(spoken), '',
@@ -505,7 +505,7 @@ test('openfilm get: what can be got here, connected, partly or not at all; wrong
 test('nothing connected: local subtitles, and a note naming only what the services make', async () => {
   rmSync(providersFile());
   const { verbs, note } = await catalog();
-  assert.deepEqual(verbs.map(v => v.verb), ['subtitles']);
+  assert.deepEqual(verbs.map(v => v.verb), ['make', 'subtitles']);
   assert.match(note, new RegExp(`\\(${Object.keys(VERBS).filter((v) => !WEB_VERBS.includes(v) && made(v)).join(', ')}\\)`));
   assert.doesNotMatch(note, /account/i);
   /* one kind: which services make it, and where the person connects one */
