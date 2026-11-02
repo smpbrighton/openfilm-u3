@@ -13,6 +13,7 @@ import { es } from './es.ts';
 import { ja } from './ja.ts';
 import { ko } from './ko.ts';
 import { zhCN } from './zh-CN.ts';
+import { brandText } from '../lib/brand.ts';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English', words: en },
@@ -84,7 +85,8 @@ function current(): Language {
 /** The path in `language`'s table, else in English's, else the path itself. */
 export function lookup(path: string, language: Language = current()): string {
   const words = LANGUAGES.find((l) => l.code === language)?.words;
-  return (words && language !== 'en' ? find(words, path) : null) ?? find(en, path) ?? path;
+  const text = (words && language !== 'en' ? find(words, path) : null) ?? find(en, path);
+  return text === null ? path : brandText(text);
 }
 
 const listeners = new Set<() => void>();

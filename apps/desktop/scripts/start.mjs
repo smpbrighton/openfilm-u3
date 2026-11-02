@@ -32,7 +32,7 @@ if (process.platform === 'darwin') {
   const version = require('electron/package.json').version;
   const productVersion = require('../package.json').version;
   /* .dev/ is git-ignored */
-  const runtime = join(desktop, '.dev', 'runtime', `${version}-openfilm-dev-v2-${productVersion}`);
+  const runtime = join(desktop, '.dev', 'runtime', `${version}-u3-studio-dev-v1-${productVersion}`);
   const bundle = join(runtime, `${identity.productName}.app`);
   const marker = join(runtime, 'ready');
   /* the executable keeps Electron's own name: Electron decides `app.isPackaged` from it. The name people see comes
@@ -49,8 +49,8 @@ if (process.platform === 'darwin') {
     set('CFBundleShortVersionString', productVersion);
     set('CFBundleVersion', productVersion);
     set('CFBundleIdentifier', identity.bundleId);
-    set('CFBundleIconFile', 'openfilm.icns');
-    copyFileSync(join(desktop, 'build/icon-dev.icns'), join(bundle, 'Contents/Resources/openfilm.icns'));
+    set('CFBundleIconFile', 'u3-studio.icns');
+    copyFileSync(join(desktop, 'build/icon-dev.icns'), join(bundle, 'Contents/Resources/u3-studio.icns'));
     /* a local ad-hoc signature covers the changed bundle */
     execFileSync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', bundle], { stdio: 'ignore' });
     execFileSync('/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister', ['-f', bundle]);

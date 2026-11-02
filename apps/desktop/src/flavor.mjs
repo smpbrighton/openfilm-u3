@@ -20,22 +20,24 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packaged = Boolean(process.versions.electron) && !process.defaultApp;
+const PRODUCT = 'u3 Studio';
+const BUNDLE = 'ai.brightongroup.u3studio';
 
 export const FLAVORS = Object.freeze({
-  release: { productName: 'OpenFilm', bundleId: 'dev.openfilm.desktop', studioPort: 4747, studioHome: null, library: null, sharedHome: null },
+  release: { productName: PRODUCT, bundleId: BUNDLE, studioPort: 4747, studioHome: null, library: null, sharedHome: null },
   preview: {
-    productName: 'OpenFilm Preview', bundleId: 'dev.openfilm.desktop.preview', studioPort: 4777,
+    productName: `${PRODUCT} Preview`, bundleId: `${BUNDLE}.preview`, studioPort: 4777,
     studioHome: join(homedir(), '.openfilm-preview'), library: null, sharedHome: join(homedir(), '.openfilm'),
   },
   dev: {
-    productName: 'OpenFilm Dev', bundleId: 'dev.openfilm.desktop.dev', studioPort: 4757,
+    productName: `${PRODUCT} Dev`, bundleId: `${BUNDLE}.dev`, studioPort: 4757,
     studioHome: join(homedir(), '.openfilm-dev'), library: null, sharedHome: join(homedir(), '.openfilm'),
   },
 });
 
 const benchDir = process.env.OPENFILM_BENCH_DIR ?? '';
 const BENCH = Object.freeze({
-  productName: 'OpenFilm Bench', bundleId: 'dev.openfilm.desktop.bench', studioPort: 4767,
+  productName: `${PRODUCT} Bench`, bundleId: `${BUNDLE}.bench`, studioPort: 4767,
   studioHome: join(benchDir, 'home'), library: join(benchDir, 'projects'), sharedHome: null, userData: join(benchDir, 'data'),
 });
 

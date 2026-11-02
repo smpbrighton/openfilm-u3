@@ -42,6 +42,7 @@ import { createHash } from 'node:crypto';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lockedOverrides, versionsOffLock } from './locked-versions.mjs';
+import { FLAVORS } from '../src/flavor.mjs';
 
 const require = createRequire(import.meta.url);
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -67,7 +68,8 @@ const official = process.argv.includes('--official');
    folder, Studio home, port and projects (src/flavor.mjs `preview`, from the package's `openfilmFlavor`); no updates */
 const preview = process.argv.includes('--preview');
 if (preview && official) throw new Error('--preview is never the official build');
-const NAME = preview ? 'OpenFilm Preview' : 'OpenFilm';
+const APP = preview ? FLAVORS.preview : FLAVORS.release;
+const NAME = APP.productName;
 const productFile = join(protocol, official ? 'product.official.json' : 'product.json');
 const product = JSON.parse(readFileSync(productFile, 'utf8'));
 const updates = typeof product.desktop?.updates === 'string' ? product.desktop.updates.trim().replace(/\/+$/, '') : '';
@@ -108,7 +110,7 @@ writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
   ...(preview ? { openfilmFlavor: 'preview' } : {}),
   version: pkg.version,
   description: pkg.description,
-  author: 'OpenFilm',
+  author: 'Brighton AI Holdings',
   license: 'UNLICENSED',
   private: true,
   type: 'module',
@@ -169,7 +171,7 @@ await builder.build({
       icon: join(desktop, 'build/icon.ico'),
       /* resedit writes the icon and version (afterPack); rcedit would need wine on this Mac */
       signAndEditExecutable: false,
-      artifactName: `${NAME.replace(' ', '-')}-Setup-\${arch}.\${ext}`,
+      artifactName: `${NAME.replaceAll(' ', '-')}-Setup-\${arch}.\${ext}`,
     },
     nsis: {
       /* the installer asks where to put the app (the person's own folder by default), so it need not live on C: */
@@ -180,11 +182,11 @@ await builder.build({
       uninstallerIcon: join(desktop, 'build/icon.ico'),
       shortcutName: NAME,
       deleteAppDataOnUninstall: false,
-      artifactName: `${NAME.replace(' ', '-')}-Setup-\${arch}.\${ext}`,
+      artifactName: `${NAME.replaceAll(' ', '-')}-Setup-\${arch}.\${ext}`,
     },
-    appId: preview ? 'dev.openfilm.desktop.preview' : 'dev.openfilm.desktop',
+    appId: APP.bundleId,
     productName: NAME,
-    copyright: 'Copyright © 2026 OpenFilm',
+    copyright: 'Copyright © 2026 Brighton AI Holdings',
     electronVersion,
     asar: true,
     /* run by Electron as Node from outside the archive: the CLI the agents run, the agents' adapters */
@@ -210,7 +212,7 @@ await builder.build({
       icon: join(desktop, 'build/icon.icns'),
       minimumSystemVersion: '13.0',
       /* the .zip the updater downloads; the .dmg has its own name (dmg.artifactName) */
-      artifactName: `${NAME.replace(' ', '-')}-\${version}-\${arch}-mac.\${ext}`,
+      artifactName: `${NAME.replaceAll(' ', '-')}-\${version}-\${arch}-mac.\${ext}`,
       hardenedRuntime: true,
       gatekeeperAssess: false,
       entitlements: join(desktop, 'build/entitlements.mac.plist'),
@@ -218,7 +220,7 @@ await builder.build({
       ...(unsigned ? { identity: null } : { identity: IDENTITY, notarize: true }),
     },
     /* the downloads keep one name from version to version: the website links the latest release's by it */
-    dmg: { title: NAME, artifactName: `${NAME.replace(' ', '-')}-\${arch}.\${ext}` },
+    dmg: { title: NAME, artifactName: `${NAME.replaceAll(' ', '-')}-\${arch}.\${ext}` },
   },
 });
 
@@ -227,7 +229,7 @@ if (!unsigned && !win && FEED) {
   run('/usr/bin/codesign', ['--verify', '--deep', '--strict', app]);
   run('/usr/bin/xcrun', ['stapler', 'validate', app]);
   /* 4. the download */
-  const dmg = join(out, `${NAME.replace(' ', '-')}-${arch}.dmg`);
+  const dmg = join(out, `${NAME.replaceAll(' ', '-')}-${arch}.dmg`);
   run('/usr/bin/codesign', ['--sign', `Developer ID Application: ${IDENTITY}`, '--timestamp', dmg]);
   run('/usr/bin/xcrun', ['notarytool', 'submit', dmg, '--keychain-profile', NOTARY_PROFILE, '--wait']);
   run('/usr/bin/xcrun', ['stapler', 'staple', dmg]);
@@ -249,7 +251,7 @@ function adHocSign(context) {
   execFileSync('codesign', ['--force', '--deep', '--sign', '-', join(context.appOutDir, `${NAME}.app`)], { stdio: 'inherit' });
 }
 
-/** OpenFilm.exe's icon and version, as rcedit would write them. */
+/** The app executable's icon and version, as rcedit would write them. */
 async function windowsResources(context) {
   const ResEdit = await import('resedit');
   const PE = await import('pe-library');
@@ -263,8 +265,8 @@ async function windowsResources(context) {
   info.setFileVersion(major, minor, patch, 0, 1033);
   info.setProductVersion(major, minor, patch, 0, 1033);
   info.setStringValues({ lang: 1033, codepage: 1200 }, {
-    ProductName: 'OpenFilm', FileDescription: 'OpenFilm', CompanyName: 'OpenFilm', OriginalFilename: 'OpenFilm.exe',
-    InternalName: 'OpenFilm', LegalCopyright: 'Copyright © 2026 OpenFilm', FileVersion: pkg.version, ProductVersion: pkg.version,
+    ProductName: NAME, FileDescription: NAME, CompanyName: 'Brighton AI Holdings', OriginalFilename: `${NAME}.exe`,
+    InternalName: NAME, LegalCopyright: 'Copyright © 2026 Brighton AI Holdings', FileVersion: pkg.version, ProductVersion: pkg.version,
   });
   info.outputToResourceEntries(res.entries);
   res.outputResource(exe);

@@ -1,4 +1,6 @@
-/** The value at a dotted path of a table of words; the path itself when there is none. */
+import { brandText } from 'openfilm/studio-ui/lib/brand.ts';
+
+/** The display value at a dotted path of a table of words; the path itself when there is none. */
 export function lookup(dict: unknown, path: string): string {
   let cur: unknown = dict;
   for (const part of path.split('.')) {
@@ -8,5 +10,5 @@ export function lookup(dict: unknown, path: string): string {
       return path;
     }
   }
-  return typeof cur === 'string' ? cur : path;
+  return typeof cur === 'string' ? brandText(cur) : path;
 }

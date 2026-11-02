@@ -1,25 +1,12 @@
-import React from 'react';
+import { PRODUCT } from '../lib/brand';
 
-/*
- * The mark: a playhead over two clips, forming an F, in the surrounding text's color. The clips are cut away around
- * the playhead (a real gap, so whatever is behind shows through), which keeps the playhead's shape in one color.
- */
-const VIEWBOX = '8 6 84 92';
-const PLAYHEAD = 'M17 12H37Q40 12 40 15V27Q40 29 38.5 30.5L31 37V88Q31 92 27 92Q23 92 23 88V37L15.5 30.5Q14 29 14 27V15Q14 12 17 12Z';
-
-export function BrandLogo({ size = 18 }: { size?: number }) {
-  const gap = `openfilm-gap-${React.useId().replace(/:/g, '')}`;
+/** The approved icon's white u3 and amber play triangle, simplified for 11–34 px interface marks. */
+export function BrandLogo({ size = 18, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox={VIEWBOX} fill="currentColor" className="block shrink-0" role="img" aria-label="OpenFilm">
-      <mask id={gap} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-        <rect width="100" height="100" fill="#fff" />
-        <path d={PLAYHEAD} stroke="#000" strokeWidth="7" strokeLinejoin="round" />
-      </mask>
-      <g mask={`url(#${gap})`}>
-        <rect x="22" y="12" width="64" height="20" rx="5" />
-        <rect x="25" y="44" width="47" height="19" rx="5" />
-      </g>
-      <path d={PLAYHEAD} />
+    <svg width={size} height={size} viewBox="0 0 100 100" className={`block shrink-0 ${className ?? ''}`.trim()} role="img" aria-label={PRODUCT}>
+      <rect width="100" height="100" rx="22" fill="#101218" />
+      <path d="M20 35V54C20 77 48 77 48 54V38M59 30H73C91 30 91 49 74 49H63V57M76 49C94 54 91 73 73 73H56" fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M67 55Q65 54 65 57V65Q65 68 68 66L75 62Q78 60 75 59Z" fill="#FFB020" />
     </svg>
   );
 }
