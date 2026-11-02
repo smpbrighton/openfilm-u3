@@ -338,3 +338,12 @@ test('media ends never round above the file boundary at film.html millisecond pr
   assert.equal(clips(p, 'sfx')[0].time[1], 0.412);
   assert.equal(p.receipt.memes[0].at, 0.934, 'end placement uses the serialized duration');
 });
+
+test('source trims ending exactly at fractional probe duration remain inside the file and cues stay gapless', () => {
+  const value = table([scene({ startSec: 0.3, endSec: 2.066667 }), scene({ inputIndex: 2, endSec: 1 })]);
+  value.inputs[0].duration = 2.066667;
+  const p = planFilm(value, library([]), () => [], { stage });
+  assert.deepEqual(clips(p, 'source').map(c => [c.at, c.time]), [[0, [0.3, 2.066]], [1.766, [0, 1]]]);
+  assert.deepEqual(clips(p, 'subtitle').map(c => [c.at, c.time[1]]), [[0, 1.766], [1.766, 1]]);
+  assert.equal(p.receipt.duration, 2.766);
+});
