@@ -48,3 +48,9 @@ Track: lite.
 - Windows job에 Electron fixture 검증 게이트를 추가했다. 로컬 macOS의 Electron 44.9.3 내장 Node 24.22.0은 Ed25519를 지원하지만 `blake2b512`를 지원하지 않는다. 시스템 Node의 대상 테스트 18건은 통과했지만 Electron 테스트는 11건 중 4건 실패했다. `ED` 지원 증명은 미충족이다. 현재 workflow는 정상 릴리스 공개를 차단한다. Node `crypto`만 허용한 결정에 따라 대체 해시 구현이나 의존성은 추가하지 않았다.
 - 공개 레포 `smpbrighton/u3-studio-releases`와 README는 이어받은 시점에 이미 있었다. 공개 상태·설명·README를 확인했으며 다시 만들거나 수정하지 않았다.
 - 이번 구현은 이 worktree에서만 수행한다. 사용자 지시에 따라 병합·소스 레포 push·다른 worktree 수정은 수행하지 않는다. 실제 키 생성·공개키 반영·secret 등록·실제 릴리스·Windows 실기기 검증은 수행하지 않는다.
+
+## 결정 대체(세션 검토)
+- 사용자 답: 「legacy Ed 서명 사용」. Electron 내장 Node 에 `blake2b512` 가 없어 `ED`(prehash) 를 앱에서 검증할 수 없다(codex 실측, Electron 테스트 11건 중 4건 실패).
+- 결정 0002 를 0011 으로 대체한다. 릴리스는 `minisign -S -l` 로 서명하고, 앱은 `Ed` 만 받고 `ED` 는 거부한다. Node 내장 Ed25519 만 쓴다.
+- 증명 추가: `ELECTRON_RUN_AS_NODE=1` 로 돌린 minisign·업데이트 검증 테스트가 모두 통과한다. `ED` 서명은 거부된다(막혀야 할 경우).
+

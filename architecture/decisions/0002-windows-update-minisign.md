@@ -1,6 +1,6 @@
 # 0002 데스크톱 업데이트는 electron-updater 에 GitHub Releases 피드와 minisign 검증을 연결한다
 
-Status: accepted
+Status: superseded-by 0011
 Origin: 커밋 abb112e 의 u3/CONCEPT.md 「방향 결정」 표(사람이 작성). 검증 가능 여부는 커밋 855540d 의 u3/CHECK-windows-update.md 로 확인했다
 Source: apps/desktop/src/updates.mjs apps/desktop/scripts/release.mjs
 
