@@ -6,7 +6,7 @@ import { createWindowsUpdateVerifier } from './u3-update-verify.mjs';
 import electronUpdater from 'electron-updater';
 
 const fixture = (name) => new URL(`../fixtures/u3-minisign/${name}`, import.meta.url);
-const signature = readFileSync(fixture('prehashed.minisig'), 'utf8');
+const signature = readFileSync(fixture('legacy.minisig'), 'utf8');
 const key = readFileSync(fixture('test.pub'), 'utf8');
 const feed = 'https://github.com/smpbrighton/u3-studio-releases/releases/latest/download';
 function setup({ publicKey = key, text = signature, fetcher, version = '0.2.8', files = [{ url: 'OpenFilm-Setup-x64.exe' }] } = {}) {
@@ -37,6 +37,13 @@ test('valid update uses the feed installer name, not the temporary downloaded pa
   const state = setup();
   assert.equal(await state.verify(), null);
   assert.deepEqual(state.urls, [`${feed}/OpenFilm-Setup-x64.exe.minisig`]);
+});
+
+test('prehashed ED updates return an explicit rejection without URLs', async () => {
+  const text = readFileSync(fixture('prehashed.minisig'), 'utf8');
+  const reason = await setup({ text }).verify();
+  assert.match(reason, /prehashed.*ED.*not supported.*legacy Ed/i);
+  assert.doesNotMatch(reason, /https|github|installer\.bin/);
 });
 
 test('checking again clears stale version and installer metadata', async () => {

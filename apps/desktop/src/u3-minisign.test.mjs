@@ -6,7 +6,7 @@ import { verifyMinisign, verifyMinisignFile, signedVersion } from './u3-minisign
 const fixture = (name) => new URL(`../fixtures/u3-minisign/${name}`, import.meta.url);
 const bytes = readFileSync(fixture('installer.bin'));
 const key = readFileSync(fixture('test.pub'), 'utf8');
-const signature = readFileSync(fixture('prehashed.minisig'), 'utf8');
+const signature = readFileSync(fixture('legacy.minisig'), 'utf8');
 
 test('a changed payload, key, trusted comment or global signature is rejected', () => {
   const changed = Buffer.from(bytes); changed[0] ^= 1;
@@ -26,11 +26,18 @@ test('malformed signatures and empty or malformed public keys fail closed', () =
   for (const value of ['', ' ', 'broken', key.trim().split('\n')[1] + '!']) assert.throws(() => verifyMinisign(bytes, signature, value));
 });
 
-for (const name of ['prehashed.minisig', 'legacy.minisig']) test(`minisign CLI fixture ${name} verifies in memory and from disk`, async () => {
-  const sig = readFileSync(fixture(name), 'utf8');
+test('minisign CLI legacy Ed fixture verifies in memory and from disk', async () => {
+  const sig = signature;
   assert.equal(signedVersion(verifyMinisign(bytes, sig, key)), '0.2.8');
   assert.equal(signedVersion(await verifyMinisignFile(fixture('installer.bin'), sig, key.trim().split('\n')[1])), '0.2.8');
   assert.equal(signedVersion(verifyMinisign(bytes, sig.replaceAll('\n', '\r\n'), key)), '0.2.8');
+});
+
+test('prehashed ED signatures are rejected explicitly before reading installer bytes', async () => {
+  const sig = readFileSync(fixture('prehashed.minisig'), 'utf8');
+  const reason = /prehashed.*ED.*not supported.*legacy Ed/i;
+  assert.throws(() => verifyMinisign(bytes, sig, key), reason);
+  await assert.rejects(verifyMinisignFile('/missing-installer.exe', sig, key), reason);
 });
 
 test('signed version must be a single complete field', () => {

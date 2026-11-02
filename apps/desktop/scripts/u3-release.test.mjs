@@ -18,7 +18,7 @@ async function release(t, macOnly = false) {
       const name = `OpenFilm-${target}.${ext}`;
       copyFileSync(fixture('installer.bin'), join(dir, name));
       files.push({ url: name, sha512: createHash('sha512').update(readFileSync(join(dir, name))).digest('base64'), size: readFileSync(join(dir, name)).length });
-      if (ext === 'exe') copyFileSync(fixture('prehashed.minisig'), join(dir, `${name}.minisig`));
+      if (ext === 'exe') copyFileSync(fixture('legacy.minisig'), join(dir, `${name}.minisig`));
     }
     writeFileSync(join(dir, `latest-${target}.yml`), JSON.stringify({ version, files, path: files[0].url, sha512: files[0].sha512 }));
   }
@@ -53,8 +53,25 @@ test('Mac-only succeeds with no Windows feed; accidental Windows assets prevent 
 test('unsigned or wrong-version Windows installers cannot produce a fragment', async (t) => {
   const dir = await release(t);
   await assert.rejects(writeFragment('windows', version, commit, dir, { publicKey: '' }));
-  writeFileSync(join(dir, 'OpenFilm-win-x64.exe.minisig'), readFileSync(fixture('prehashed.minisig'), 'utf8').replace('version:0.2.8', 'version:0.2.9'));
+  writeFileSync(join(dir, 'OpenFilm-win-x64.exe.minisig'), readFileSync(fixture('legacy.minisig'), 'utf8').replace('version:0.2.8', 'version:0.2.9'));
   await assert.rejects(writeFragment('windows', version, commit, dir, { publicKey }));
+});
+
+test('prehashed ED Windows signatures cannot produce a fragment', async (t) => {
+  const dir = await release(t);
+  copyFileSync(fixture('prehashed.minisig'), join(dir, 'OpenFilm-win-x64.exe.minisig'));
+  await assert.rejects(writeFragment('windows', version, commit, dir, { publicKey }), /prehashed.*ED.*not supported.*legacy Ed/i);
+});
+
+test('publication rejects ED even when the fragment records the signature hash', async (t) => {
+  const dir = await release(t);
+  const name = 'OpenFilm-win-x64.exe.minisig';
+  copyFileSync(fixture('prehashed.minisig'), join(dir, name));
+  const path = join(dir, 'windows.fragment.json');
+  const fragment = JSON.parse(readFileSync(path, 'utf8'));
+  fragment.assets[name] = createHash('sha256').update(readFileSync(join(dir, name))).digest('hex');
+  writeFileSync(path, JSON.stringify(fragment));
+  await assert.rejects(checkRelease(version, commit, dir, { publicKey }), /prehashed.*ED.*not supported.*legacy Ed/i);
 });
 
 test('feed version, traversal and omitted assets fail before checksums are written', async (t) => {
