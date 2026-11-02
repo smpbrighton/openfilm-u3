@@ -959,7 +959,8 @@ export function filmHtml(value, before = '') {
     }));
   }
   const checked = readFilm(structuredClone(value)).doc;
-  let body = '\n';
+  // With no <body> tag, the head already includes the newline before the first section.
+  let body = old && /\n[\t ]*$/.test(old.text.slice(0, old.layout.bodyStart)) ? '' : '\n';
   (value.tracks ?? []).forEach((track, ti) => {
     const was = old?.layout.tracks[ti];
     const wasTrack = old?.doc.tracks[ti];
