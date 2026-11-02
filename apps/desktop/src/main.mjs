@@ -485,8 +485,8 @@ async function start() {
   Object.assign(env, browsers);
   /* The release download checks SHA-256. App signing can change Mach-O bytes afterwards. */
   const whisperRuntime = runtime ?? here('../.dev/runtime');
-  const whisper = existsSync(join(whisperRuntime, 'whisper', 'whisper-cli'))
-    ? { OPENFILM_U3_WHISPER_CLI: join(whisperRuntime, 'whisper', 'whisper-cli') } : {};
+  const whisperCli = join(whisperRuntime, 'whisper', windows ? 'whisper-cli.exe' : 'whisper-cli');
+  const whisper = existsSync(whisperCli) ? { OPENFILM_U3_WHISPER_CLI: whisperCli } : {};
   Object.assign(env, whisper);
   /* u3's bundled library (scripts/release.mjs), for Studio's u3 Library (studio/server/u3-library.mjs) */
   if (runtime && existsSync(join(process.resourcesPath, 'u3-library'))) env.OPENFILM_U3_LIBRARY = join(process.resourcesPath, 'u3-library');

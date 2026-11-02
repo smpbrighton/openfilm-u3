@@ -1,5 +1,5 @@
 /**
- * The installer's local ASR binary (no Electron imports). Only darwin-arm64 is published.
+ * The installer's local ASR binary (no Electron imports). Mac arm64 and Windows x64 are published.
  * Build time uses gh for the private release; the installed app never downloads a binary.
  */
 import { execFile } from 'node:child_process';
@@ -18,13 +18,23 @@ export const WHISPER_BUILD = Object.freeze({
   licenseUrl: `${BASE}/LICENSE`,
   licenseSha256: '94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d',
 });
+const BUILDS = Object.freeze({
+  'darwin-arm64': { name: 'whisper-cli', url: WHISPER_BUILD.url, sha256: WHISPER_BUILD.sha256 },
+  'win32-x64': {
+    name: 'whisper-cli.exe',
+    url: `${BASE}/whisper-cli-win32-x64.exe`,
+    sha256: 'd1d52fc4cff877dbf4407d9e492e402362c5abe6efa2fad205a23bfbeb2f9916',
+  },
+});
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
-export const whisperDownloadable = (platform = process.platform, arch = process.arch) => platform === 'darwin' && arch === 'arm64';
+export const whisperDownloadable = (platform = process.platform, arch = process.arch) => Object.hasOwn(BUILDS, `${platform}-${arch}`);
 
 /** Both a preexisting copy and a freshly downloaded copy must match the pinned build. */
-export async function whisperIn(dir) {
-  try { return hash(await readFile(join(dir, 'whisper-cli'))) === WHISPER_BUILD.sha256; }
+export async function whisperIn(dir, platform = process.platform, arch = process.arch) {
+  const build = BUILDS[`${platform}-${arch}`];
+  if (!build) return false;
+  try { return hash(await readFile(join(dir, build.name))) === build.sha256; }
   catch { return false; }
 }
 
@@ -34,8 +44,10 @@ export async function whisperIn(dir) {
  */
 export async function fetchWhisper(dir, { platform = process.platform, arch = process.arch, fetch: fetchImpl } = {}) {
   if (!whisperDownloadable(platform, arch)) throw new Error(`whisper-cli 를 찾지 못했다 (${platform}-${arch}). OPENFILM_U3_WHISPER_CLI를 지정하세요.`);
+  const build = BUILDS[`${platform}-${arch}`];
   await mkdir(dir, { recursive: true });
   const work = await mkdtemp(join(dir, '.fetch-'));
+  const published = [];
   try {
     const pinned = async (url, sha256) => {
       let bytes;
@@ -55,13 +67,18 @@ export async function fetchWhisper(dir, { platform = process.platform, arch = pr
       if (hash(bytes) !== sha256) throw new Error('whisper-cli 다운로드 SHA-256 검사가 실패했습니다. 파일을 보관하지 않았습니다.');
       return bytes;
     };
-    const binary = await pinned(WHISPER_BUILD.url, WHISPER_BUILD.sha256);
+    const binary = await pinned(build.url, build.sha256);
     const license = await pinned(WHISPER_BUILD.licenseUrl, WHISPER_BUILD.licenseSha256);
-    await writeFile(join(work, 'whisper-cli'), binary);
-    await chmod(join(work, 'whisper-cli'), 0o755);
+    await writeFile(join(work, build.name), binary);
+    if (platform !== 'win32') await chmod(join(work, build.name), 0o755);
     await writeFile(join(work, 'MIT-whisper.cpp.txt'), license);
     await rename(join(work, 'MIT-whisper.cpp.txt'), join(dir, 'LICENSE'));
-    await rename(join(work, 'whisper-cli'), join(dir, 'whisper-cli'));
+    published.push(join(dir, 'LICENSE'));
+    await rename(join(work, build.name), join(dir, build.name));
+    published.push(join(dir, build.name));
     return dir;
+  } catch (error) {
+    await Promise.all(published.map((file) => rm(file, { force: true })));
+    throw error;
   } finally { await rm(work, { recursive: true, force: true }); }
 }
