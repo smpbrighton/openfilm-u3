@@ -47,3 +47,8 @@ Track: lite.
 
 ## 롤백
 병합 revert. 설정 파일은 바꾸지 않으므로 되돌릴 데이터가 없다.
+
+## 구현에서 달라진 것
+- `keys.mjs`는 조건 하나만 바꾼다. 기본 연결만 추가하면 연결 해제 API가 로컬 provider를 다시 연결하므로 `providers/index.mjs`의 연결 해제 조건에도 `keyless && local`을 더한다. 같은 파일의 선택·표시 경로는 저장된 받아쓰기 선택이 없을 때만 u3 Whisper를 기본값으로 쓴다. 저장된 선택과 업스트림 keyless provider의 연결 규칙은 유지한다.
+- `get.test.mjs`의 연결 없음 사례는 로컬 provider를 명시적으로 끈다. 로컬 받아쓰기 사례는 저장된 키와 선택 없이 실행한다. 실패 테스트를 먼저 커밋한 뒤 이 테스트들을 바꾸지 않고 구현한다.
+- 실제 시험은 원본 프로젝트를 이 worktree의 `.dev/projects/u3-sfx-timing`에 복사해서 진행한다. 사용자의 구현 지시에 따라 데스크톱 앱을 실행하거나 재시작하지 않는다. 새 개발 Studio home에서 `say -v Yuna`로 만든 한국어 음성을 받아쓴다. dev start와 같은 `whisperIn`·`fetchWhisper` 호출로 받은 바이너리를 사용한다. 병합과 push는 실행하지 않는다.

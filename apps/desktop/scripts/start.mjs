@@ -14,12 +14,20 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launcherEnvironment, loginShellEnvironment } from '../src/environment.mjs';
 import { FLAVORS } from '../src/flavor.mjs';
+import { fetchWhisper, whisperIn } from '../src/u3-whisper-runtime.mjs';
 
 process.env.OPENFILM_DESKTOP_FLAVOR = 'dev';
 const identity = FLAVORS.dev;
 const require = createRequire(import.meta.url);
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2).filter((a) => a !== '--no-build');
+
+const whisper = join(desktop, '.dev', 'runtime', 'whisper');
+try {
+  if (!await whisperIn(whisper)) await fetchWhisper(whisper);
+} catch (error) {
+  console.warn(`u3 Whisper: ${error.message}`);
+}
 
 if (!process.argv.includes('--no-build')) {
   const vite = join(dirname(require.resolve('vite/package.json')), 'bin', 'vite.js');

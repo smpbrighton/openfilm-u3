@@ -91,7 +91,7 @@ export async function chooseProvider(verb, { via, settings } = {}) {
   /* every provider that speaks also lists its voices; one that searches the web reads its pages */
   const kind = /** @type {Verb} */ (kindOf(verb));
   if (via) return named(via, kind, saved, true);
-  const chosen = saved.use[kind];
+  const chosen = saved.use[kind] ?? (kind === 'asr' ? u3Whisper.id : null);
   if (!chosen) return null;
   return named(chosen, kind, saved, false);
 }
@@ -104,7 +104,7 @@ export async function chooseProvider(verb, { via, settings } = {}) {
  */
 export function shownChoices(settings) {
   const live = (/** @type {string} */ verb) => {
-    const provider = OWN.find((p) => p.id === settings.use[verb]);
+    const provider = OWN.find((p) => p.id === (settings.use[verb] ?? (verb === 'asr' ? u3Whisper.id : null)));
     return provider && providerKey(provider, settings) ? provider : null;
   };
   return {
@@ -200,7 +200,7 @@ export async function providersRoute(req, res, parts, { openBrowser }) {
     if (req.method === 'DELETE') {
       await changeSettings((s) => {
         delete s.keys[provider.id];
-        if (envKey(provider) && !s.off.includes(provider.id)) s.off.push(provider.id);
+        if ((envKey(provider) || (provider.keyless && provider.local)) && !s.off.includes(provider.id)) s.off.push(provider.id);
         /* what a provider that can no longer be used made goes to what else makes it */
         if (!providerKey(provider, s)) for (const [verb, id] of Object.entries(s.use)) if (id === provider.id) delete s.use[verb];
         fill(s);

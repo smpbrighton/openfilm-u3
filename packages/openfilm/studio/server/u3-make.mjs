@@ -199,11 +199,13 @@ export function planFilm(table, library, rank, { stage, exclude = [] }) {
       time[1] = round(time[1] + length);
       if (time[1] > input.duration + 1e-9) throw new HttpError(400, `장면 ${i + 1}: 합친 영상 구간이 원본 길이를 넘습니다`);
     } else video.push({ id: `make-source-${i + 1}`, src: input.src, at: cursor, time: [start, end], box: coverBox(input, stage), attrs: marker('source') });
+    let firstMemeAt;
     for (const position of /** @type {const} */ (['before', 'after'])) {
       if (!(position === 'before' ? scene.memeBefore : scene.memeAfter)) continue;
       const meme = position === 'after' && scene.memeBefore && scene.memeAfter ? selected.alternates[i] : selected.memes[i];
       const dur = mediaEnd(Math.min(/** @type {number} */ (meme.durationSec), 2, length));
       const at = position === 'before' ? cursor : round(cursor + length - dur);
+      firstMemeAt ??= at;
       const clip = { id: `make-meme-${i + 1}-${position}`, src: `assets/video/memes/${meme.id}.mp4`, at, time: [0, dur], box: memeBox(meme, stage), volume: 0, attrs: marker('meme') };
       placeLowest(memes, clip);
       chosenMemes.push({ scene: i + 1, id: meme.id, position, at, dur });
@@ -213,9 +215,10 @@ export function planFilm(table, library, rank, { stage, exclude = [] }) {
     const list = library.sfx.filter(s => s.category === category && positive(s.durationSec)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     const sound = pickSfxFile(list, table.hash.slice(0, 16), i);
     if (sound) {
+      const at = firstMemeAt ?? cursor;
       const dur = mediaEnd(Math.min(1.5, /** @type {number} */ (sound.durationSec)));
-      placeLowest(sounds, { id: `make-sfx-${i + 1}`, src: `assets/audio/sfx/${sound.path.split(/[\\/]/).at(-1)}`, at: cursor, time: [0, dur], attrs: marker('sfx') });
-      chosenSfx.push({ scene: i + 1, id: sound.id, category, at: cursor, dur });
+      placeLowest(sounds, { id: `make-sfx-${i + 1}`, src: `assets/audio/sfx/${sound.path.split(/[\\/]/).at(-1)}`, at, time: [0, dur], attrs: marker('sfx') });
+      chosenSfx.push({ scene: i + 1, id: sound.id, category, at, dur });
     }
     cursor = round(cursor + length);
   });

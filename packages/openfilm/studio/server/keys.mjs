@@ -102,7 +102,7 @@ export function providerKey(provider, settings, env = process.env) {
   const kept = settings.keys[provider.id];
   if (kept) return { key: kept, source: 'file', env: provider.env };
   if (settings.off?.includes(provider.id)) return null;
-  return envKey(provider, env) ?? (provider.keyless && kept === '' ? { key: '', source: 'file', env: provider.env } : null);
+  return envKey(provider, env) ?? (provider.keyless && (provider.local || kept === '') ? { key: '', source: 'file', env: provider.env } : null);
 }
 
 /** The environment's key for a provider, connected or not, or null. @param {Provider} provider */

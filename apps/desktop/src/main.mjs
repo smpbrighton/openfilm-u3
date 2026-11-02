@@ -484,8 +484,9 @@ async function start() {
   const browsers = runtime && existsSync(join(runtime, 'ms-playwright')) ? { PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright') } : {};
   Object.assign(env, browsers);
   /* The release download checks SHA-256. App signing can change Mach-O bytes afterwards. */
-  const whisper = runtime && existsSync(join(runtime, 'whisper', 'whisper-cli'))
-    ? { OPENFILM_U3_WHISPER_CLI: join(runtime, 'whisper', 'whisper-cli') } : {};
+  const whisperRuntime = runtime ?? here('../.dev/runtime');
+  const whisper = existsSync(join(whisperRuntime, 'whisper', 'whisper-cli'))
+    ? { OPENFILM_U3_WHISPER_CLI: join(whisperRuntime, 'whisper', 'whisper-cli') } : {};
   Object.assign(env, whisper);
   /* u3's bundled library (scripts/release.mjs), for Studio's u3 Library (studio/server/u3-library.mjs) */
   if (runtime && existsSync(join(process.resourcesPath, 'u3-library'))) env.OPENFILM_U3_LIBRARY = join(process.resourcesPath, 'u3-library');
