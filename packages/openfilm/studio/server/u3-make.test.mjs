@@ -331,3 +331,10 @@ test('get make is always offered locally; missing scenes is rejected before prov
   await assert.rejects(runGet(root, 'make', {}), /--scenes/);
   await assert.rejects(runGet(root, 'make', { scenes: 'missing.json' }, { via: 'no-provider' }), /장면표/);
 });
+
+test('media ends never round above the file boundary at film.html millisecond precision', () => {
+  const p = plan([scene()], [meme('fractional', { durationSec: 1.066667 })], [sound('fractional', 'laugh', 0.4125)]);
+  assert.equal(clips(p, 'meme')[0].time[1], 1.066);
+  assert.equal(clips(p, 'sfx')[0].time[1], 0.412);
+  assert.equal(p.receipt.memes[0].at, 0.934, 'end placement uses the serialized duration');
+});
