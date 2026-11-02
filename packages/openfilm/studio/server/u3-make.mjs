@@ -19,10 +19,10 @@ import { prepareSubtitlePage, subtitleClips } from './u3-subtitles.mjs';
 /** @typedef {import('./ops.mjs').FilmValue} FilmValue */
 /** @typedef {{ inputIndex: number, startSec: number, endSec: number, caption: string, subCaption?: string, reaction: string | null, memeBefore: boolean, memeAfter: boolean, sfxCategory: string | null }} Scene */
 /** @typedef {{ src: string, duration: number, width: number, height: number }} Input */
-/** @typedef {{ title?: string, scenes: Scene[], inputs: Input[], hash: string }} SceneTable */
+/** @typedef {{ title?: string, fit?: 'cover' | 'blur', scenes: Scene[], inputs: Input[], hash: string }} SceneTable */
 /** @typedef {{ w: number, h: number }} Stage */
 /** @typedef {{ query: string, reaction?: string }} Visual */
-/** @typedef {'subtitle' | 'meme' | 'source' | 'sfx'} Role */
+/** @typedef {'subtitle' | 'meme' | 'source' | 'backdrop' | 'sfx'} Role */
 /** @typedef {{ role: Role, clips: Clip[] }} PlannedTrack */
 
 const round = (/** @type {number} */ n) => Math.round(n * 1000) / 1000;
@@ -44,6 +44,7 @@ export async function readScenes(root, path, { probe: measure = probe } = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, '장면표: JSON object가 필요합니다');
   const errors = [];
   if (value.title !== undefined && (typeof value.title !== 'string' || value.title.length > 30)) errors.push('title: 30자 이내 문자열이 필요합니다');
+  if (value.fit !== undefined && !['cover', 'blur'].includes(value.fit)) errors.push('fit: cover 또는 blur 여야 합니다');
   const sources = Array.isArray(value.inputs) ? value.inputs : [];
   if (!sources.length || sources.length > 20) errors.push('inputs: 프로젝트 안 영상 경로 1–20개가 필요합니다');
   /** @type {(Input | undefined)[]} */
@@ -77,7 +78,7 @@ export async function readScenes(root, path, { probe: measure = probe } = {}) {
     if (scene.reaction === null && (scene.memeBefore === true || scene.memeAfter === true)) fail('reaction이 null이면 memeBefore와 memeAfter는 false여야 합니다');
   }
   if (errors.length) throw new HttpError(400, errors.join('\n'));
-  return { title: value.title, inputs: /** @type {Input[]} */ (inputs), scenes: scenes.map((/** @type {Scene} */ s) => ({ ...s, memeBefore: s.memeBefore ?? false, memeAfter: s.memeAfter ?? false })), hash: createHash('sha256').update(raw).digest('hex') };
+  return { title: value.title, fit: value.fit ?? 'cover', inputs: /** @type {Input[]} */ (inputs), scenes: scenes.map((/** @type {Scene} */ s) => ({ ...s, memeBefore: s.memeBefore ?? false, memeAfter: s.memeAfter ?? false })), hash: createHash('sha256').update(raw).digest('hex') };
 }
 
 /** u3 core/sfx.ts: explicit category, selected meme emotion, then scene reaction.
@@ -157,6 +158,18 @@ function coverBox(input, stage) {
   const w = input.width * scale, h = input.height * scale;
   return { x: round((stage.w - w) / 2), y: round((stage.h - h) / 2), w: round(w), h: round(h) };
 }
+/** @param {Input} input @param {Stage} stage */
+function containBox(input, stage) {
+  const scale = Math.min(stage.w / input.width, stage.h / input.height);
+  const w = input.width * scale, h = input.height * scale;
+  return { x: round((stage.w - w) / 2), y: round((stage.h - h) / 2), w: round(w), h: round(h) };
+}
+/** Keep the blur's transparent edges outside the stage.
+ * @param {Input} input @param {Stage} stage @param {number} pad */
+function backdropBox(input, stage, pad) {
+  const box = coverBox(input, stage);
+  return { x: round(box.x - pad), y: round(box.y - pad), w: round(box.w + 2 * pad), h: round(box.h + 2 * pad) };
+}
 /** @param {Clip} c */
 const duration = c => Number(/** @type {number[]} */ (c.time)[1]) - Number(/** @type {number[]} */ (c.time)[0]);
 /** @param {Clip} a @param {Clip} b */
@@ -177,6 +190,10 @@ export function planFilm(table, library, rank, { stage, exclude = [] }) {
   const selected = chooseMissingInputMemes(resolveScriptMemes(table.scenes, rankings, exclude), rankings, exclude);
   /** @type {Clip[]} */
   const video = [];
+  /** @type {Clip[]} */
+  const backdrop = [];
+  const fit = table.fit ?? 'cover';
+  const blur = Math.round(Math.max(stage.w, stage.h) * 0.025);
   /** @type {Clip[][]} */
   const memes = [];
   /** @type {Clip[][]} */
@@ -190,6 +207,7 @@ export function planFilm(table, library, rank, { stage, exclude = [] }) {
   let cursor = 0;
   selected.scenes.forEach((scene, i) => {
     const input = table.inputs[scene.inputIndex - 1];
+    const blurred = fit === 'blur' && Math.abs(input.width * stage.h - input.height * stage.w) > input.height * stage.w * 0.01;
     const start = round(scene.startSec), end = mediaEnd(scene.endSec);
     const length = round(end - start);
     if (length <= 0) throw new HttpError(400, `장면 ${i + 1}: film.html의 밀리초 정밀도로 표현할 수 없는 영상 구간입니다`);
@@ -198,7 +216,12 @@ export function planFilm(table, library, rank, { stage, exclude = [] }) {
       const time = /** @type {number[]} */ (previous.time);
       time[1] = round(time[1] + length);
       if (time[1] > input.duration + 1e-9) throw new HttpError(400, `장면 ${i + 1}: 합친 영상 구간이 원본 길이를 넘습니다`);
-    } else video.push({ id: `make-source-${i + 1}`, src: input.src, at: cursor, time: [start, end], box: coverBox(input, stage), attrs: marker('source') });
+    } else {
+      // Share the trim so contiguous source merges extend the matching backdrop too.
+      const time = [start, end];
+      video.push({ id: `make-source-${i + 1}`, src: input.src, at: cursor, time, box: blurred ? containBox(input, stage) : coverBox(input, stage), attrs: marker('source') });
+      if (blurred) backdrop.push({ id: `make-backdrop-${i + 1}`, src: input.src, at: cursor, time, box: backdropBox(input, stage, 2 * blur), volume: 0, style: `filter: blur(${blur}px) brightness(0.6)`, attrs: marker('backdrop') });
+    }
     let firstMemeAt;
     for (const position of /** @type {const} */ (['before', 'after'])) {
       if (!(position === 'before' ? scene.memeBefore : scene.memeAfter)) continue;
@@ -227,9 +250,10 @@ export function planFilm(table, library, rank, { stage, exclude = [] }) {
     { role: 'subtitle', clips: subtitleClips(cues, { layer: 'make', escape: false, attrs: marker('subtitle') }) },
     ...memes.toReversed().map(clips => ({ role: /** @type {const} */ ('meme'), clips })),
     { role: 'source', clips: video },
+    ...(backdrop.length ? [{ role: /** @type {const} */ ('backdrop'), clips: backdrop }] : []),
     ...sounds.toReversed().map(clips => ({ role: /** @type {const} */ ('sfx'), clips })),
   ];
-  return { stage, tracks, receipt: { scenes: table.scenes.length, duration: cursor, memes: chosenMemes, sfx: chosenSfx, missingMemes: selected.missing.size, missingSceneIndexes: [...selected.missing].sort((a, b) => a - b), warning: '다시 실행하면 data-u3-make 클립의 손 편집을 교체합니다. 보존할 클립에서는 data-u3-make 속성을 지우세요.' } };
+  return { stage, tracks, receipt: { fit, scenes: table.scenes.length, duration: cursor, memes: chosenMemes, sfx: chosenSfx, missingMemes: selected.missing.size, missingSceneIndexes: [...selected.missing].sort((a, b) => a - b), warning: '다시 실행하면 data-u3-make 클립의 손 편집을 교체합니다. 보존할 클립에서는 data-u3-make 속성을 지우세요.' } };
 }
 
 /** @param {FilmValue} value */
@@ -239,7 +263,7 @@ function assertUnlocked(value) {
 /** @param {Clip} clip @returns {Role} */
 function roleOf(clip) {
   const role = /** @type {Record<string, string>} */ (clip.attrs ?? {})['data-u3-make'];
-  if (['subtitle', 'meme', 'source', 'sfx'].includes(role)) return /** @type {Role} */ (role);
+  if (['subtitle', 'meme', 'source', 'backdrop', 'sfx'].includes(role)) return /** @type {Role} */ (role);
   return clip.id.startsWith('u3sub-') ? 'subtitle' : clipKind(clip.src) === 'sound' ? 'sfx' : clip.volume === 0 ? 'meme' : 'source';
 }
 

@@ -60,3 +60,7 @@ Track: lite.
 
 ## 롤백
 병합을 revert 한다. revert 뒤에는 `fit: "blur"` 가 든 장면표도 cover 로 처리된다. 지금 `readScenes` 는 모르는 키를 막지 않는다. 이미 만든 film 의 backdrop 클립은 다음 make 실행이 `data-u3-make` 클립으로 지운다.
+
+## 구현에서 달라진 것
+- 실제 확인에 지정된 `u3-채팅-시험2`의 `assets/회사-썰.mp4`가 없었다. 그 프로젝트를 `.dev/projects/u3-blur-fill`로 복사한 뒤, 인접 프로젝트 `u3-채팅-시험/assets/회사-썰.mp4`를 복사본에만 보충했다. 보충한 영상의 probe 결과는 기존 캐시와 같은 720×720, 19.1초, 30fps다. 원본 프로젝트는 수정하지 않았다.
+- Dev Studio의 프로젝트와 공유 설정도 이 worktree의 `.dev/` 아래로 지정했다. 구현 세션은 최종 작업 지시에 따라 병합과 push를 하지 않는다.
