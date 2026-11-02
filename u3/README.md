@@ -31,6 +31,13 @@ openfilm get asr --via u3-whisper --src assets/voice.wav
 - 바이너리 SHA-256: `355c1791326a6dda1daebdd6a2b06bf127ad085cf021f5bb021bbbd652bed14b`.
 - LICENSE SHA-256: `94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d`.
 
+Windows x64 빌드는 같은 v1.9.5 소스 tar와 SHA-256을 사용한다. Windows x64의 PowerShell 7에서 `./u3/scripts/build-whisper-windows.ps1`을 실행한다. Visual Studio C++ x64 도구와 CMake가 필요하다.
+
+- 빌드 옵션: `BUILD_SHARED_LIBS=OFF`, `CMAKE_POLICY_DEFAULT_CMP0091=NEW`, `CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded`(`/MT`), `GGML_OPENMP=OFF`, `GGML_NATIVE=OFF`, `WHISPER_BUILD_TESTS=OFF`. Visual Studio x64 generator로 `whisper-cli` 타깃의 Release를 빌드한다. 기본 CPU 옵션은 AVX2를 사용한다.
+- 검사: `vswhere`로 찾은 `dumpbin /dependents`로 Windows 시스템 DLL만 허용한다. `MSVCP*`, `VCRUNTIME*`, `VCOMP*`, `ucrtbase.dll`, `api-ms-win-crt-*` 의존성이 있으면 실패한다. 공식 [ggml tiny 모델](https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny.bin)의 SHA-256 `be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`을 확인하고 소스의 `samples/jfk.wav` 출력에 `ask not`이 있는지 검사한다.
+- 결과: 두 검사를 통과하면 `out/whisper-cli-win32-x64.exe`를 만들고 SHA-256을 출력한다. `out/whisper-cli-win32-x64.exe.sha256`과 `out/whisper-cli-win32-x64.dumpbin.txt`에 검사 증거를 남긴다. 빌드 캐시는 `.dev/whisper-build-windows`이며 `OPENFILM_U3_BUILD_CACHE`로 바꾼다.
+- 수동 CI: `.github/workflows/u3-whisper-windows.yml`은 `workflow_dispatch`로만 실행한다. Windows runner에서 빌드와 검사를 수행하고, 기존 `whisper-cli-1.9.5` prerelease에 Windows asset을 추가한다. 같은 이름의 asset이 있으면 실패한다. exe는 workflow artifact에도 보관한다. 소스 LICENSE는 기존 asset과 같다.
+
 데스크톱 release 단계는 `u3-whisper-runtime.mjs`로 두 asset을 받아 각각 해시를 확인한다. 비공개 asset에는 `gh`의 `smpbrighton` 인증 또는 `GH_TOKEN`이 필요하다. `runtime/whisper`의 실행 파일과 MIT LICENSE가 기존 `extraResources`의 `runtime` 항목으로 앱에 들어간다. 설치 후 바이너리를 받지 않는다.
 
 단어 시각과 한국어 옵션은 u3의 `whisper.ts`, `transcript.ts`에서 옮겼다. 테스트 fixture는 u3의 `tests/fixtures/whisper-output.json`에서 가져왔다.
