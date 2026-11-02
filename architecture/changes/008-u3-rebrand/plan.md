@@ -45,3 +45,10 @@ Track: lite.
 - dev 아이콘에는 원본에 파란색 `(0.12, 0.40, 1.0)` tint 30%를 혼합했다. alpha는 유지했다. 생성 코드는 `apps/desktop/build/dev-icon.swift`다. `start.mjs`의 runtime 이름도 바꿔 이전 이름·아이콘의 캐시를 쓰지 않게 했다.
 - release의 이름과 bundle ID는 `flavor.mjs`에서 읽는다. Preview 산출물도 공백을 모두 하이픈으로 바꾼다. `.github/workflows/desktop.yml`의 릴리스 제목은 007에서 이미 `u3 Studio`로 바뀌어 수정하지 않았다.
 - 실제 대상 HTML은 네 파일이었다. 별도의 chat HTML은 없다. `main.mjs`는 이미 flavor의 이름으로 앱 이름·데이터 폴더·창 제목을 설정하므로 수정하지 않았다.
+
+## 세션 검토
+- `pnpm run verify`: exit 0, `✓ verify passed`(통과 2,030, 실패 0). 이름 치환·flavor 테스트를 먼저 커밋했다(`f86fea5`).
+- dev 앱 확인(codex): 메뉴 막대·창 제목·앱 정보 `u3 Studio Dev`, 설정 버전 줄 `u3 Studio 0.2.7`, 새 SVG 로고, 파란 dev 아이콘. 증거는 워크트리 `.dev/u3-rebrand-evidence/`(커밋하지 않음).
+- 세션이 고친 것: 단축키 스킴 이름이 `OpenFilm` 으로 하드코딩되어 있어 `PRODUCT` 를 쓰게 했다(`8af7c60`).
+- 남긴 「OpenFilm」: 설정의 출처 고지 「OpenFilm 기반(MIT)」(의도), 프로젝트 저장 위치 `~/Movies/OpenFilm/Projects`(경로 유지 결정), 저장된 지난 대화 문구, dev 샘플 영상의 글, `lib/whats-new.ts` 과거 릴리스 본문.
+- 미검증: Mac 배포 패키지, Windows 설치 파일·NSIS 바로가기.
