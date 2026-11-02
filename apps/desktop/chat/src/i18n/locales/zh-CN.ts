@@ -269,6 +269,9 @@ export const zhCN: Words = {
     shuffle: '换一批',
     title: '你想做什么？',
     tryLabel: '试试这些，点一下就行',
+    u3f1: '一支介绍在海外通过 FROMKO 应用订购 Olive Young 商品的 30 秒竖屏短视频',
+    u3f2: '一支介绍在海外通过 FROMKO 购买韩国网店商品的方法的 1 分钟指南视频',
+    u3f3: '一支解释 FROMKO 国际运费预付和验货后结算的动态图形视频',
   },
   turnAsk: {
     collapse: '收起',

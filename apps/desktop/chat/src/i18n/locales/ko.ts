@@ -265,6 +265,9 @@ export const ko: Words = {
     shuffle: '다른 예시',
     title: '무엇을 만들고 싶으세요?',
     tryLabel: '이 중 하나를 눌러 시작해 보세요',
+    u3f1: 'FROMKO 앱으로 올리브영 상품을 해외에서 주문하는 30초 세로 숏츠',
+    u3f2: '해외에서 FROMKO로 한국 쇼핑몰 상품을 사는 방법 1분 안내 영상',
+    u3f3: 'FROMKO 국제 배송비 선결제와 검수 후 정산을 설명하는 모션그래픽',
   },
   turnAsk: {
     collapse: '접기',

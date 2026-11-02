@@ -269,6 +269,9 @@ export const es: Words = {
     shuffle: 'Otras ideas',
     title: '¿Qué quieres hacer?',
     tryLabel: 'Prueba una de estas, solo tócala',
+    u3f1: 'Un video corto vertical de 30 segundos sobre cómo pedir productos de Olive Young desde el extranjero con la app FROMKO',
+    u3f2: 'Un video guía de un minuto sobre cómo comprar productos de tiendas en línea coreanas desde el extranjero con FROMKO',
+    u3f3: 'Una animación gráfica que explica el pago anticipado del envío internacional de FROMKO y el ajuste del importe tras la inspección',
   },
   turnAsk: {
     collapse: 'Contraer',

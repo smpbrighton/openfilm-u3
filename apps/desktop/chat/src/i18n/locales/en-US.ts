@@ -270,6 +270,9 @@ export const enUS = {
     shuffle: 'Shuffle',
     title: 'What do you want to make?',
     tryLabel: 'Try one of these, just tap',
+    u3f1: 'A 30-second vertical short about ordering Olive Young products from abroad with the FROMKO app',
+    u3f2: 'A one-minute guide to buying products from Korean online stores from abroad with FROMKO',
+    u3f3: 'A motion graphic explaining FROMKO\'s international shipping fee prepayment and settlement after inspection',
   },
   turnAsk: {
     collapse: 'Collapse',

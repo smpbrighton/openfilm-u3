@@ -43,3 +43,8 @@ Track: lite.
 
 ## 롤백
 병합을 revert 한다.
+
+## 구현에서 달라진 것
+- 사용자 지시에 따라 4단계의 데스크톱 앱 실행과 GUI 캡처를 생략했다. 실행 중인 개발 앱의 캡처와 클릭 확인은 상위 세션이 맡는다.
+- 사용자 지시에 따라 이 worktree에서 구현·검증·커밋까지만 진행한다. 6단계의 병합과 push는 하지 않는다.
+- 완료 조건에 지정된 `python3 /Volumes/X31/workspace/smp_workspace/smp-plugins/plugins/smp/scripts/lint-architecture.py .` 검사를 추가했다.

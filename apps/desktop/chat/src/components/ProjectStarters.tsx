@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useT } from '@/i18n';
 import { BrandLogo } from './BrandLogo';
+import { U3_STARTERS, U3_STARTER_ICONS } from './u3-starters';
 
 /**
  * Four groups of five, most common first (a promo, an explainer, a social ad, cutting your own footage, slides to
@@ -69,6 +70,25 @@ export function ProjectStarters({
           {t('starter.shuffle')}
         </button>
       </div>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {U3_STARTERS.map((id) => {
+          const text = t(`starter.${id}`);
+          const Icon = U3_STARTER_ICONS[id];
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                onClick={() => onPick(text)}
+                className="group flex w-full items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-left text-[13.5px] leading-snug text-[var(--text)] transition hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]"
+              >
+                <Icon aria-hidden size={15} strokeWidth={1.8} className="shrink-0" />
+                <span className="min-w-0 flex-1">{text}</span>
+                <ArrowUpRight size={14} className="shrink-0 text-[var(--text-faint)] transition group-hover:text-[var(--text)]" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
       {/* All four groups stack in one grid cell, only the current one visible, so the height is always the tallest
           group's. Otherwise lines wrapping differently per group would change the height, and the centered title and
           "Shuffle" would jump out from under the pointer. */}
