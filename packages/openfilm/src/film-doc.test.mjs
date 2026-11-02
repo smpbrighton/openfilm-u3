@@ -9,6 +9,17 @@ const page = (tracks, head = '<meta name="viewport" content="width=1080, height=
   `<!doctype html>\n<html>\n<head>\n${head}\n</head>\n<body>\n${tracks.map((t) => `<section>\n${t.map((c) => `  ${c}\n`).join('')}</section>\n`).join('')}</body>\n</html>\n`;
 const said = (text) => readFilmFile(text).problems.join('\n');
 
+test('writing a film without an explicit body does not accumulate leading blank lines', () => {
+  const value = film({ id: 'source', src: 'a.mp4', time: [0, 3] });
+  for (const before of [
+    '<meta name="viewport" content="width=1920, height=1080">\n',
+    '<meta name="viewport" content="width=1920, height=1080">\n<section>\n  <video id="source" src="a.mp4#t=0,3"></video>\n</section>\n',
+  ]) {
+    const once = filmHtml(value, before);
+    assert.equal(filmHtml(value, once), once);
+  }
+});
+
 test('a film.html reads as its value: the viewport its stage, each section a track, each element a clip', () => {
   const { doc, problems: found } = readFilmFile(page([
     ['<iframe id="hook" src="01-hook.html#t=0,3.5"></iframe>'],

@@ -175,6 +175,16 @@ test('u3 sfx precedence, UTF-8 FNV-1a, id ordering, source hash seed, lengths an
   assert.ok(!clips(p, 'sfx').some(c => /intro/.test(c.id)));
 });
 
+test('make reruns byte-for-byte on a hand-written film without an explicit body', async t => {
+  const root = await project(t);
+  await writeFile(join(root, 'film.html'), '<meta name="viewport" content="width=1080, height=1920">\n');
+  const p = plan([scene()]);
+  await applyMake(root, p);
+  const first = await readFile(join(root, 'film.html'), 'utf8');
+  await applyMake(root, p);
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), first);
+});
+
 test('atomic apply reuses tracks and flags, preserves human make-up ids, avoids id collisions and reruns byte-for-byte', async t => {
   const root = await project(t);
   const p = plan([scene({ memeBefore: true, memeAfter: true })], [a, b], [sound('laugh')]);
