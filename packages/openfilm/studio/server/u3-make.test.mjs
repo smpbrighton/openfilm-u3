@@ -406,3 +406,140 @@ test('make clamps rounded library sidecar durations to the selected files measur
   assert.equal(result.sfx[0].dur, 0.412);
   assert.match(await readFile(join(root, 'film.html'), 'utf8'), /rounded.mp4#t=0,1.066/);
 });
+
+const fitPlan = (value, memes = [], sfx = [], filmStage = stage) => planFilm(value, library(memes, sfx), () => memes, { stage: filmStage });
+const squareTable = scenes => ({ ...table(scenes), fit: 'blur', inputs: [{ ...input(), width: 1080, height: 1080 }, input('b.mp4')] });
+
+test('fit defaults to cover and accepts only explicit cover or blur', async t => {
+  const root = await project(t);
+  assert.equal((await readScenes(root, 'scenes.json', { probe: measure })).fit, 'cover');
+  for (const fit of ['cover', 'blur']) {
+    await save(root, { fit, inputs: ['a.mp4'], scenes: [scene()] });
+    assert.equal((await readScenes(root, 'scenes.json', { probe: measure })).fit, fit);
+  }
+});
+
+test('invalid fit is a 400 before film changes', async t => {
+  const root = await project(t);
+  const before = await readFile(join(root, 'film.html'), 'utf8');
+  for (const fit of [null, '', 'contain', 'BLUR', 0, false, [], {}]) {
+    await save(root, { fit, inputs: ['a.mp4'], scenes: [scene()] });
+    await assert.rejects(readScenes(root, 'scenes.json', { probe: measure }), e => {
+      assert.equal(e.status, 400);
+      assert.equal(e.message, 'fit: cover 또는 blur 여야 합니다');
+      return true;
+    });
+    assert.equal(await readFile(join(root, 'film.html'), 'utf8'), before);
+  }
+});
+
+test('absent fit preserves the pre-feature cover film bytes; explicit cover uses the same layout', () => {
+  const value = table([scene({ reaction: null })]);
+  const p = fitPlan(value);
+  const bytes = filmHtml({ stage: p.stage, tracks: p.tracks.map(({ clips }) => ({ clips })) });
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), '0ea643aed82d49d4a518fffc46f20b7a0cf237b593deb8a42c1c8e62c91a9d73');
+  assert.deepEqual(fitPlan({ ...value, fit: 'cover' }).tracks, p.tracks);
+  assert.equal(clips(p, 'backdrop').length, 0);
+});
+
+test('blur contains a square source above a padded, dark, muted backdrop and below memes and subtitles', () => {
+  const value = squareTable([scene({ memeBefore: true, memeAfter: true })]);
+  const original = structuredClone(value);
+  const p = fitPlan(value, [a, b], [sound('laugh')]);
+  assert.deepEqual(clips(p, 'source')[0].box, { x: 0, y: 420, w: 1080, h: 1080 });
+  assert.equal(clips(p, 'source')[0].volume, undefined);
+  assert.deepEqual(clips(p, 'backdrop'), [{
+    id: 'make-backdrop-1', src: 'a.mp4', at: 0, time: [0, 2],
+    box: { x: -516, y: -96, w: 2112, h: 2112 },
+    volume: 0, style: 'filter: blur(48px) brightness(0.6)', attrs: { 'data-u3-make': 'backdrop' },
+  }]);
+  assert.deepEqual(p.tracks.map(t => t.role), ['subtitle', 'meme', 'meme', 'source', 'backdrop', 'sfx']);
+  assert.equal(p.receipt.fit, 'blur');
+  assert.deepEqual(fitPlan(value, [a, b], [sound('laugh')]), p);
+  assert.deepEqual(value, original, 'layout must not mutate its inputs');
+  const landscape = fitPlan(squareTable([scene()]), [], [], { w: 1920, h: 1080 });
+  assert.deepEqual(clips(landscape, 'source')[0].box, { x: 420, y: 0, w: 1080, h: 1080 });
+  assert.deepEqual(clips(landscape, 'backdrop')[0].box, { x: -96, y: -516, w: 2112, h: 2112 });
+});
+
+test('blur merges adjacent source and backdrop trims together, including the 0.05 second boundary', () => {
+  for (const startSec of [2.4, 2.42, 2.45, 2.451]) {
+    const p = fitPlan(squareTable([scene({ startSec: 0.3, endSec: 2.4 }), scene({ startSec, endSec: 5 })]));
+    const source = clips(p, 'source'), backdrop = clips(p, 'backdrop');
+    assert.equal(source.length, startSec <= 2.45 ? 1 : 2);
+    assert.equal(backdrop.length, source.length);
+    assert.deepEqual(backdrop.map(c => [c.src, c.at, c.time]), source.map(c => [c.src, c.at, c.time]));
+    assert.deepEqual(source[0].time, startSec <= 2.45 ? [0.3, Math.round((5 - startSec + 2.4) * 1000) / 1000] : [0.3, 2.4]);
+    assert.equal(clips(p, 'subtitle').length, 2);
+  }
+});
+
+test('blur uses cover without a backdrop for ratios within one percent, and blur only beyond it', () => {
+  for (const width of [560, 562.5, 565, 556.875, 568.125, 556, 569]) {
+    const value = { ...table([scene()]), fit: 'blur', inputs: [{ ...input(), width, height: 1000 }] };
+    const p = fitPlan(value);
+    const needsBackdrop = width < 556.875 || width > 568.125;
+    assert.equal(clips(p, 'backdrop').length, needsBackdrop ? 1 : 0, `width ${width}`);
+    if (!needsBackdrop) assert.deepEqual(clips(p, 'source')[0].box, clips(fitPlan({ ...value, fit: 'cover' }), 'source')[0].box);
+  }
+  const mixed = fitPlan({ ...squareTable([scene(), scene({ inputIndex: 2 }), scene({ startSec: 4, endSec: 6 })]), inputs: [
+    { ...input(), width: 1080, height: 1080 }, { ...input('b.mp4'), width: 1080, height: 1920 },
+  ] });
+  assert.deepEqual(clips(mixed, 'backdrop').map(c => [c.id, c.at, c.time]), [['make-backdrop-1', 0, [0, 2]], ['make-backdrop-3', 4, [4, 6]]]);
+});
+
+test('blur apply reuses one backdrop track, keeps its flags and human clips, and cover removes only owned backdrops', async t => {
+  const root = await project(t);
+  const value = squareTable([scene()]);
+  const p = fitPlan(value);
+  await applyMake(root, p);
+  const first = await readFile(join(root, 'film.html'), 'utf8');
+  await applyMake(root, fitPlan(value));
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), first);
+  let written = await film(root);
+  const backdrop = written.tracks.find(t => t.clips.some(c => c.attrs?.['data-u3-make'] === 'backdrop'));
+  assert.ok(backdrop);
+  backdrop.muted = true;
+  backdrop.clips.push({ id: 'human-backdrop', src: 'person.mp4', at: 10, time: [0, 1] });
+  await changeProjectFilm(root, () => ({ value: written }));
+  await applyMake(root, p);
+  written = await film(root);
+  const backdrops = written.tracks.filter(t => t.clips.some(c => c.attrs?.['data-u3-make'] === 'backdrop'));
+  assert.equal(backdrops.length, 1);
+  assert.equal(backdrops[0].muted, true, 'backdrop role must reuse its track rather than become a meme');
+  assert.ok(backdrops[0].clips.some(c => c.id === 'human-backdrop'));
+  assert.ok(written.tracks.flatMap(t => t.clips).some(c => c.id === 'make-up'));
+  const before = await readFile(join(root, 'film.html'), 'utf8');
+  await applyMake(root, p);
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), before);
+  backdrops[0].locked = true;
+  await changeProjectFilm(root, () => ({ value: written }));
+  const locked = await readFile(join(root, 'film.html'), 'utf8');
+  await assert.rejects(applyMake(root, p), /locked/);
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), locked);
+  backdrops[0].locked = false;
+  await changeProjectFilm(root, () => ({ value: written }));
+  await applyMake(root, fitPlan({ ...value, fit: 'cover' }));
+  written = await film(root);
+  assert.equal(written.tracks.flatMap(t => t.clips).filter(c => c.attrs?.['data-u3-make'] === 'backdrop').length, 0);
+  assert.ok(written.tracks.flatMap(t => t.clips).some(c => c.id === 'human-backdrop'));
+});
+
+test('blur make end-to-end receipts and film repeat byte-for-byte with a single backdrop track', async t => {
+  const root = await project(t);
+  const dir = await fakeLibrary(t, [a, b], [sound('laugh')]);
+  await save(root, { fit: 'blur', inputs: ['a.mp4'], scenes: [scene({ endSec: 1 }), scene({ startSec: 1 })] });
+  const options = { probe: measure, dir, search: ruleSearch };
+  const first = await makeFilm(root, { scenes: 'scenes.json' }, options);
+  assert.equal(first.fit, 'blur');
+  const bytes = await readFile(join(root, 'film.html'), 'utf8');
+  assert.deepEqual(await makeFilm(root, { scenes: 'scenes.json' }, options), first);
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), bytes);
+  const written = await film(root);
+  const backdrops = written.tracks.filter(t => t.clips.some(c => c.attrs?.['data-u3-make'] === 'backdrop'));
+  assert.equal(backdrops.length, 1);
+  assert.equal(backdrops[0].clips.length, 1);
+  assert.equal(backdrops[0].clips[0].style, 'filter: blur(48px) brightness(0.6)');
+  assert.equal(backdrops[0].clips[0].volume, 0);
+  assert.ok(written.tracks.flatMap(t => t.clips).some(c => c.id === 'make-up'));
+});
