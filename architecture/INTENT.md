@@ -31,6 +31,8 @@ u3 의 핵심 세 가지(짤방, 효과음, 자막)는 Tauri 앱 u3 안에만 �
 ## 결정
 - 데스크톱 셸은 Electron 을 유지한다 — [0001](decisions/0001-electron-shell.md)
 - Windows 업데이트는 electron-updater 에 GitHub Releases 피드와 minisign legacy Ed 서명 검증을 연결한다 — [0011](decisions/0011-windows-update-legacy-ed.md)
+- 자동 생성은 에이전트가 쓴 장면표를 `openfilm get make` 가 결정론적으로 배치한다 — [0012](decisions/0012-make-from-scene-table.md)
+- make 는 자기 클립만 소유하고 다시 실행하면 그것만 바꾼다 — [0013](decisions/0013-make-owns-its-clips.md)
 - u3 기능은 provider·skill·verb·별도 패널에 모으고 코어는 고치지 않는다 — [0003](decisions/0003-change-placement.md)
 - 자동 생성 파이프라인은 결정론적 verb 체인이다 — [0004](decisions/0004-deterministic-pipeline.md)
 - 자막은 웹 페이지 클립이고 `.vtt` 는 가져오기 소스다 — [0005](decisions/0005-subtitles-as-page-clips.md)
