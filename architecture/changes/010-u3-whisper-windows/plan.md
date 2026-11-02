@@ -58,3 +58,9 @@ Track: lite.
 - 실행 순서:
   - A단계: `u3/scripts/build-whisper-windows.ps1`(new)와 `.github/workflows/u3-whisper-windows.yml`(new, `workflow_dispatch` 만)를 만든다. 세션이 main 에 병합하고 workflow 를 한 번 실행한다. GitHub 은 기본 브랜치의 workflow 만 수동 실행하기 때문이다.
   - B단계: 올린 asset 의 SHA-256 을 `u3-whisper-runtime.mjs` 의 win32-x64 타깃에 고정한다. 받기 경로는 Mac 과 같은 비공개 gh 경로다. 그다음 테스트, `main.mjs`, README, Rosetta, Windows 설치 파일 빌드, Mac 회귀, verify 를 한다(원래 순서 2–6).
+
+## 계획 변경 2 (Docker 빌드)
+- 사용자: 「docker를 이용해서 빌드하면 되잖아」. 이 Mac 의 Docker 서버는 linux/arm64 라서 Windows 컨테이너와 MSVC 를 쓸 수 없다. 그래서 Linux 컨테이너에서 llvm-mingw 로 교차 빌드한다(정적 링크, `GGML_OPENMP=OFF`, `GGML_NATIVE=OFF`, `BUILD_SHARED_LIBS=OFF`). 「계획 변경 (1단계 중단 뒤)」의 CI workflow 는 지운다.
+- import 검사: Windows 시스템 DLL 과 UCRT(`api-ms-win-crt-*`, Windows 10 이상 기본 포함)만 허용한다. `libc++`, `libunwind`, `libwinpthread`, `libgomp`, `VCRUNTIME*`, `MSVCP*` 가 있으면 실패다.
+- 시험: amd64 컨테이너의 wine 으로 `samples/jfk.wav` 를 받아쓴다.
+- 비공개 prerelease 업로드는 세션이 B단계에서 한다. Windows 배포(병합·출시)는 사용자 지시에 따라 기능 구현을 마친 뒤에 한다.
