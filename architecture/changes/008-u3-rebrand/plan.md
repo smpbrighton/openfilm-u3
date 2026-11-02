@@ -38,3 +38,10 @@ Track: lite.
 - `pnpm run verify`.
 ### 롤백
 병합 revert. 데이터 폴더 이름이 되돌아가므로 그 사이 dev 앱 설정은 새 폴더에 남는다.
+
+## 구현에서 달라진 것
+- chat의 `useT()`와 `translate()`가 함께 쓰는 `i18n/lookup.ts`에서 표시 문구를 치환한다. Studio의 `lib/brand.ts`를 공유하며 번역 사전과 skill 파일은 바꾸지 않았다.
+- chat의 `BrandLogo.tsx`는 Studio의 SVG 컴포넌트를 다시 내보낸다. 두 화면의 마크가 같은 소스를 쓴다. Studio HTML의 favicon도 shell과 같은 새 마크로 바꿨다.
+- dev 아이콘에는 원본에 파란색 `(0.12, 0.40, 1.0)` tint 30%를 혼합했다. alpha는 유지했다. 생성 코드는 `apps/desktop/build/dev-icon.swift`다. `start.mjs`의 runtime 이름도 바꿔 이전 이름·아이콘의 캐시를 쓰지 않게 했다.
+- release의 이름과 bundle ID는 `flavor.mjs`에서 읽는다. Preview 산출물도 공백을 모두 하이픈으로 바꾼다. `.github/workflows/desktop.yml`의 릴리스 제목은 007에서 이미 `u3 Studio`로 바뀌어 수정하지 않았다.
+- 실제 대상 HTML은 네 파일이었다. 별도의 chat HTML은 없다. `main.mjs`는 이미 flavor의 이름으로 앱 이름·데이터 폴더·창 제목을 설정하므로 수정하지 않았다.

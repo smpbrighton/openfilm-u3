@@ -1,4 +1,8 @@
-# u3 로컬 음성 인식
+# u3 Studio
+
+u3 Studio는 MIT 라이선스의 OpenFilm을 기반으로 만든 앱이다. OpenFilm 프로젝트와 제휴 관계가 없다. 업스트림의 라이선스와 `TRADEMARK.md` 고지는 유지한다.
+
+## 로컬 음성 인식
 
 Studio에서 u3 Whisper를 연결하고 서비스의 음성 인식 모델을 선택한다. API 키가 필요 없다. 프로젝트 음성은 이 컴퓨터에서 처리한다.
 
@@ -30,3 +34,15 @@ openfilm get asr --via u3-whisper --src assets/voice.wav
 데스크톱 release 단계는 `u3-whisper-runtime.mjs`로 두 asset을 받아 각각 해시를 확인한다. 비공개 asset에는 `gh`의 `smpbrighton` 인증 또는 `GH_TOKEN`이 필요하다. `runtime/whisper`의 실행 파일과 MIT LICENSE가 기존 `extraResources`의 `runtime` 항목으로 앱에 들어간다. 설치 후 바이너리를 받지 않는다.
 
 단어 시각과 한국어 옵션은 u3의 `whisper.ts`, `transcript.ts`에서 옮겼다. 테스트 fixture는 u3의 `tests/fixtures/whisper-output.json`에서 가져왔다.
+
+## 앱 아이콘
+
+원본은 `apps/desktop/build/logo-1024.png`다. `icon.png`는 원본의 복사본이다. `icon-dev.png`는 같은 원본에 파란색 `(0.12, 0.40, 1.0)`을 30% 혼합한다. `apps/desktop/build/dev-icon.swift`가 alpha 값을 유지하며 만든다.
+
+```sh
+cp apps/desktop/build/logo-1024.png apps/desktop/build/icon.png
+swift apps/desktop/build/dev-icon.swift apps/desktop/build/logo-1024.png apps/desktop/build/icon-dev.png
+node apps/desktop/scripts/make-ico.mjs
+```
+
+macOS의 각 iconset에는 `sips -z`로 16·32·128·256·512 px와 각 크기의 `@2x` PNG를 넣는다. `iconutil --convert icns --output apps/desktop/build/icon.icns <icon.iconset>`으로 release 아이콘을 만든다. dev iconset도 같은 방법으로 `icon-dev.icns`로 변환한다. Studio와 chat은 11–34 px 크기에 맞춘 흰색 u3와 `#FFB020` 재생 삼각형 SVG를 공유한다.
