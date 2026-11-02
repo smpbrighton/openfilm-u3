@@ -45,3 +45,11 @@ INTENT 의 변경 후보 「u3-make-pipeline」. 에이전트가 쓴 장면표�
 
 ## 롤백
 병합 revert. make 가 만든 film 은 일반 클립으로 남는다(`data-u3-make` 속성만 남는다).
+
+
+## 구현에서 달라진 것
+- make는 자막과 다른 클립을 한 번의 `changeProjectFilm`에서 쓴다. 이를 위해 `writeSubtitleClips` 아래의 `subtitleClips`와 `prepareSubtitlePage`를 함께 공유한다. make가 자막 writer의 별도 film 쓰기를 호출하지 않는다. 기존 VTT 가져오기는 `writeSubtitleClips`를 호출한다.
+- `data-u3-make` 값에 subtitle·meme·source·sfx 역할을 적어 기존 트랙과 hidden·muted 플래그를 다시 쓴다. 속성 값이 빈 문자열인 클립도 make 소유로 취급한다. 사람 클립과 새 클립이 겹치면 새 트랙을 만들고 사람 클립을 보존한다. 사람 클립과 id가 겹치면 생성 id에 `-b`를 붙인다.
+- 짤 사이드카의 길이 1.067초가 실제 길이 1.066667초보다 길어 `look`이 실패했다. 실패 테스트를 먼저 커밋했다. 선택한 짤·효과음만 probe하여 실제 길이로 제한하고, 미디어 끝은 film.html의 밀리초 정밀도에서 내림한다. 원본 컷의 끝도 내림하며 자막·receipt 시각을 같은 길이로 계산한다. 합친 원본 구간이 실제 원본 길이를 넘거나 밀리초로 표현할 수 없는 구간이면 film 쓰기 전에 오류를 낸다.
+- 순위를 계산하는 동안 film이 바뀌면 기존 film을 덮어쓰지 않고 재실행을 요청한다. 순위의 제외 목록과 쓰기 대상이 달라지는 것을 방지한다.
+- u3 skill의 기존 형식에는 별도 메타 파일이 없어 `SKILL.md`만 추가했다. 구현·증거·개발 상태는 지정된 worktree 안에만 두었다. 병합·push와 다른 worktree 정리는 실행하지 않는다.
