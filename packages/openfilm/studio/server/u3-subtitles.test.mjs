@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { filmHtml, readFilmFile } from '../../src/film-doc.mjs';
-import { importSubtitles } from './u3-subtitles.mjs';
+import { importSubtitles, writeSubtitleClips } from './u3-subtitles.mjs';
 import { pagesDir } from './u3-library.mjs';
 import { filmCaptions } from './captions.mjs';
 import { catalog, runGet } from './get.mjs';
@@ -122,4 +122,18 @@ test('with subtitle clips Studio draws no cues, but what is not transcribed yet 
   const after = await filmCaptions(root, { duration: async () => 4 });
   assert.deepEqual(after.cues, [], 'no Studio cues beside the subtitle clips');
   assert.deepEqual(after.untranscribed, ['voice.mp3'], '자막 만들기 still finds the recording');
+});
+
+
+test('shared cue writer preserves main/sub emphasis and ownership; import reserves every make prefix', async t => {
+  const root = await project(t);
+  const before = await readFile(join(root, 'film.html'), 'utf8');
+  for (const layer of ['make', 'make-intro', 'makeup']) {
+    await assert.rejects(importSubtitles(root, { src: 'input.vtt', layer }), /reserved for get make/);
+  }
+  assert.equal(await readFile(join(root, 'film.html'), 'utf8'), before);
+  await writeSubtitleClips(root, [{ startMs: 0, endMs: 2000, main: '*메인*', sub: '*Sub*' }], { layer: 'make', escape: false, attrs: { 'data-u3-make': 'subtitle' } });
+  const clip = (await film(root)).tracks[0].clips[0];
+  assert.deepEqual(clip.overrides.map(o => o.text), ['*메인*', '*Sub*']);
+  assert.equal(clip.attrs['data-u3-make'], 'subtitle');
 });

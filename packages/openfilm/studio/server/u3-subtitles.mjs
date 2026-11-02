@@ -54,6 +54,7 @@ async function copyMissing(/** @type {string} */ from, /** @type {string} */ to)
  */
 export async function importSubtitles(root, { src, layer = 'layer1' }) {
   if (!/^[\p{L}\p{N}_-]{1,64}$/u.test(layer)) throw new HttpError(400, 'layer must be 1–64 letters, digits, underscores or dashes');
+  if (layer.startsWith('make')) throw new HttpError(400, 'layers starting with make are reserved for get make');
   if (extname(src).toLowerCase() !== '.vtt') throw new HttpError(400, 'subtitles --src must name a .vtt in the project');
   const lines = parseVtt(await readFile(inside(root, src, { read: true }), 'utf8')).lines.sort((a, b) => a.startMs - b.startMs);
   if (!lines.length) throw new HttpError(400, 'the .vtt has no subtitle cues');
@@ -62,20 +63,42 @@ export async function importSubtitles(root, { src, layer = 'layer1' }) {
     if (i + 1 < lines.length) cue.endMs = Math.min(cue.endMs, lines[i + 1].startMs);
     if (cue.startMs < 0 || cue.endMs <= cue.startMs) throw new HttpError(400, 'subtitle cues must have distinct nonnegative starts and positive durations');
   }
+  return writeSubtitleClips(root, lines.map(cue => ({ ...cue, main: cue.text, sub: '' })), { layer, escape: true });
+}
+
+/** @typedef {{ startMs: number, endMs: number, main: string, sub?: string }} SubtitleCue */
+/** @typedef {{ layer: string, escape?: boolean, attrs?: Record<string, string> }} SubtitleOptions */
+
+/** The same props and local page times for imported cues and the make transaction.
+ * @param {SubtitleCue[]} cues @param {SubtitleOptions} options */
+export function subtitleClips(cues, { layer, escape = false, attrs = {} }) {
   const page = `scenes/u3-subtitle-${layer}.html`;
-  const prefix = `u3sub-${layer}-`;
-  const sameLayer = (/** @type {import('./ops.mjs').Clip} */ clip) => clip.id.startsWith(prefix) && /^\d+(?:-b)*$/.test(clip.id.slice(prefix.length));
-  const clips = lines.map((cue, i) => ({
-    id: `${prefix}${i + 1}`, src: page, at: cue.startMs / 1000, time: [0, (cue.endMs - cue.startMs) / 1000],
-    attrs: { 'data-props': JSON.stringify(PROPS) },
-    overrides: [{ at: '#main-src', text: escapeStars(cue.text) }, { at: '#sub-src', text: '' }],
+  return cues.map((cue, i) => ({
+    id: `u3sub-${layer}-${i + 1}`, src: page, at: cue.startMs / 1000, time: [0, (cue.endMs - cue.startMs) / 1000],
+    attrs: { 'data-props': JSON.stringify(PROPS), ...attrs },
+    overrides: [{ at: '#main-src', text: escape ? escapeStars(cue.main) : cue.main }, { at: '#sub-src', text: escape ? escapeStars(cue.sub ?? '') : cue.sub ?? '' }],
   }));
+}
+
+/** @param {string} root @param {string} layer @param {{ w: number, h: number }} stage */
+export async function prepareSubtitlePage(root, layer, stage) {
+  const page = `scenes/u3-subtitle-${layer}.html`;
   const templates = pagesDir();
-  const stage = readFilmFile(await readFile(join(root, FILM_FILE), 'utf8')).doc?.stage ?? { w: 1920, h: 1080 };
   await writeMissing(inside(root, page), stagedTemplate(await readFile(join(templates, 'u3-subtitle.html'), 'utf8'), stage));
   for (const name of await readdir(join(templates, 'fonts'))) {
     await copyMissing(join(templates, 'fonts', name), inside(root, `scenes/fonts/${name}`));
   }
+}
+
+/** @param {string} root @param {SubtitleCue[]} cues @param {SubtitleOptions} options */
+export async function writeSubtitleClips(root, cues, options) {
+  const { layer } = options;
+  const page = `scenes/u3-subtitle-${layer}.html`;
+  const prefix = `u3sub-${layer}-`;
+  const sameLayer = (/** @type {import('./ops.mjs').Clip} */ clip) => clip.id.startsWith(prefix) && /^\d+(?:-b)*$/.test(clip.id.slice(prefix.length));
+  const clips = subtitleClips(cues, options);
+  const stage = readFilmFile(await readFile(join(root, FILM_FILE), 'utf8')).doc?.stage ?? { w: 1920, h: 1080 };
+  await prepareSubtitlePage(root, layer, stage);
   await changeProjectFilm(root, (value, current) => {
     if (!current.value) throw new EditError(current.problems.join('\n'), 'invalid');
     const existing = value.tracks.findIndex(track => track.clips.some(sameLayer));
