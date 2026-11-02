@@ -54,3 +54,11 @@ Track: lite.
 - 결정 0002 를 0011 으로 대체한다. 릴리스는 `minisign -S -l` 로 서명하고, 앱은 `Ed` 만 받고 `ED` 는 거부한다. Node 내장 Ed25519 만 쓴다.
 - 증명 추가: `ELECTRON_RUN_AS_NODE=1` 로 돌린 minisign·업데이트 검증 테스트가 모두 통과한다. `ED` 서명은 거부된다(막혀야 할 경우).
 
+
+## 세션 검토
+- 결정 0011 구현: 앱은 `Ed` 만 받고 `ED` 는 거부한다. `ED` 거부 테스트를 먼저 커밋했다(`64fde42`, 4건 실패 확인) 뒤 구현(`f8b8b39`).
+- `ELECTRON_RUN_AS_NODE=1` Electron 44.9.3 테스트 12건 통과. 대상 테스트 21건, actionlint 0 오류, `pnpm run verify` exit 0 `✓ verify passed`.
+- 공개 레포 `smpbrighton/u3-studio-releases` 생성(README 한 장).
+- 세션 실수 정정: 결정 0011 커밋(`1495734`)에 codex 보고서가 함께 들어가 있어 추적에서 뺐다.
+- 남은 사람 작업(`u3/RELEASE.md`): 실제 minisign 키 생성(`minisign -G`), 공개키를 `product.official.json` 의 `desktop.minisignPublicKey` 에 넣기, GitHub environment secret(`U3_WINDOWS_MINISIGN_KEY`·`_PASSWORD`, `U3_RELEASES_TOKEN`) 등록. 그 전까지 Windows 업데이트는 fail-closed 다.
+- 미검증: 실제 릴리스 workflow 실행, Windows 실기기 업데이트.
