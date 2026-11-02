@@ -347,3 +347,14 @@ test('source trims ending exactly at fractional probe duration remain inside the
   assert.deepEqual(clips(p, 'subtitle').map(c => [c.at, c.time[1]]), [[0, 1.766], [1.766, 1]]);
   assert.equal(p.receipt.duration, 2.766);
 });
+
+test('make clamps rounded library sidecar durations to the selected files measured duration before writing', async t => {
+  const root = await project(t);
+  const dir = await fakeLibrary(t, [meme('rounded', { durationSec: 1.067 })], [sound('rounded', 'laugh', 0.413)]);
+  const probe = async (_root, src) => src.startsWith('memes/') ? { duration: 1.066667, width: 400, height: 200 }
+    : src.startsWith('sfx/') ? { duration: 0.4125 } : measure();
+  const result = await makeFilm(root, { scenes: 'scenes.json' }, { probe, dir, search: ruleSearch });
+  assert.equal(result.memes[0].dur, 1.066);
+  assert.equal(result.sfx[0].dur, 0.412);
+  assert.match(await readFile(join(root, 'film.html'), 'utf8'), /rounded.mp4#t=0,1.066/);
+});
