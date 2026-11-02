@@ -1,5 +1,5 @@
 # Review: u3-make-pipeline
-Author: 확인 불가(opencodex 라우팅 지시는 claude-opus-5-5[1m], harness 표시는 claude-haiku-5-5). Status: draft. Round: 1.
+Author: 확인 불가(opencodex 라우팅 지시는 claude-opus-5-5[1m], harness 표시는 claude-haiku-5-5). Status: accepted. Round: 1.
 
 ## 대조한 것
 - 변경 문서: `architecture/changes/009-u3-make-pipeline/intent.md`, `spec.md`. 앞선 라운드의 발견은 없다(review.md 가 템플릿 상태였다).
