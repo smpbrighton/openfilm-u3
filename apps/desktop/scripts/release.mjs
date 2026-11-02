@@ -118,7 +118,8 @@ writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
   dependencies,
   overrides: lockedOverrides(lockedTree, dependencies),
 }, null, 2)}\n`);
-run('npm', ['install', '--omit=dev', '--omit=optional', '--no-audit', '--no-fund', '--no-package-lock', '--loglevel=error', `--os=${win ? 'win32' : 'darwin'}`, `--cpu=${arch}`], { cwd: stage });
+// npm checks required native packages against the host even with --os/--cpu; cross builds need --force.
+run('npm', ['install', '--omit=dev', '--omit=optional', '--no-audit', '--no-fund', '--no-package-lock', '--loglevel=error', `--os=${win ? 'win32' : 'darwin'}`, `--cpu=${arch}`, ...((win ? 'win32' : 'darwin') !== process.platform || arch !== process.arch ? ['--force'] : [])], { cwd: stage });
 const offLock = versionsOffLock(lockedTree, join(stage, 'node_modules'));
 if (offLock.length) {
   throw new Error(`The installer's packages are not the lockfile's:\n${offLock.map((p) => `  ${p.name} ${p.version} (locked: ${p.locked.join(', ')})`).join('\n')}`);
