@@ -54,11 +54,11 @@ async function adapter(t, models = [own()]) {
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  const baseUrl = `http://127.0.0.1:${server.address().port}/v1`;
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
   const child = spawn(process.execPath, [new URL('./pi-agent.mjs', import.meta.url).pathname], {
     cwd,
     env: { ...process.env, U3_TEST_MODEL_KEY: 'local-test-key', OPENFILM_PI: JSON.stringify({
-      agentDir: join(cwd, 'agent-config'), models: models.map((m) => ({ ...m, baseUrl })), model: models[0].id,
+      agentDir: join(cwd, 'agent-config'), models: models.map((m) => ({ ...m, baseUrl: m.api === 'anthropic-messages' ? baseUrl : `${baseUrl}/v1` })), model: models[0].id,
       systemPrompt: 'Reply briefly. These are local protocol tests.', skills: { names: [], paths: [] },
     }) },
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -96,7 +96,7 @@ test('BYOK Claude Auto and explicit efforts send the SDK thinking binding contro
   assert.equal(session.configOptions.find((o) => o.id === 'effort').currentValue, 'auto');
   assert.equal((await prompt(client, session.sessionId)).stopReason, 'end_turn');
   binding(requests.at(-1));
-  assert.equal(requests.at(-1).path, '/v1/messages');
+  assert.equal(new URL(requests.at(-1).path, baseUrl).pathname, '/v1/messages');
   assert.equal(requests.at(-1).headers['x-api-key'], 'local-test-key');
   assert.equal(requests.at(-1).body.model, MODEL);
   assert.equal(requests.at(-1).body.max_tokens, 32_000);
@@ -146,7 +146,7 @@ test('resuming signed Claude history keeps reasoning and tools while old picture
   assert.equal(thinking[0].signature, 'local-signature-0');
   const results = blocks.filter((b) => b.type === 'tool_result');
   assert.equal(results.length, KEEP_PICTURE_RESULTS + 1);
-  assert.match(results[0].content[1].text, /picture-0.png.*left out/);
+  assert.match(results[0].content.map((b) => b.text ?? '').join('\n'), /picture-0.png.*left out/);
   assert.equal(results.flatMap((b) => b.content).filter((b) => b.type === 'image').length, KEEP_PICTURE_RESULTS);
   assert.ok(history.buildSessionProjection().messages.some((m) => m.role === 'toolResult' && m.content.some((b) => b.type === 'image')),
     'the saved conversation retains its original images');
