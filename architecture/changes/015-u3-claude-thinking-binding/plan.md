@@ -38,6 +38,7 @@ API key로 연결한 `claude-opus-5-5`가 이미지를 검사한 뒤에도 응�
 - `apps/desktop/src/u3-pi-anthropic.mjs` (new): SDK의 Anthropic 모델 카탈로그에서 같은 모델을 찾는다. 해당 API key provider의 모델에 호환성 정보를 연결하고 runtime에 반영한다. 사용자 모델 이름, 주소, key 환경변수, context 길이와 effort 선택은 보존한다. Auto provider와 thinking provider에 같은 처리를 적용한다.
 - `apps/desktop/src/u3-pi-anthropic.test.mjs` (new): 현재 BYOK 설정과 실제 SDK로 요청을 생성하는 회귀 테스트를 작성한다. 기본 Auto, 명시적 effort, 저장된 대화 이력, 이미지 제외 이후 요청을 검사한다. 다른 API와 알 수 없는 모델에는 정보를 추가하지 않는지 검사한다.
 - `apps/desktop/src/pi-agent.mjs`: 모델 runtime을 만든 뒤 첫 세션을 열기 전에 새 모듈을 연결한다. 재개한 세션도 같은 runtime 모델을 사용하게 한다.
+- `apps/desktop/package.json`: 기존 릴리스 절차에 따라 patch 버전을 `1.0.2`로 올린다. 검증한 소스의 `v1.0.2` tag로 Mac arm64와 Windows x64 배포를 실행한다.
 - 이 `plan.md`: 승인과 구현 결과, 검증 증거를 기록한다.
 
 ## 순서
@@ -61,8 +62,16 @@ API key로 연결한 `claude-opus-5-5`가 이미지를 검사한 뒤에도 응�
 - 전체 검증: `pnpm run verify`가 exit 0이고 마지막 줄이 `✓ verify passed`다.
 - 실제 Anthropic 서버의 서명 검증은 로컬 요청 캡처로 증명할 수 없다. 구현 뒤 실서비스 확인을 실행하지 않으면 미검증으로 남긴다. 사용자의 실제 대화나 영상 파일은 자동으로 수정하지 않는다.
 
-## 현재 검증 상태
-진단용 SDK 요청 캡처만 실행했다. 제품 코드를 변경하지 않았다. 회귀 테스트와 `pnpm run verify`는 구현 승인 뒤 실행한다.
+## 구현과 검증
+- 새 모듈이 알려진 Anthropic 모델의 SDK 호환성 정보를 연결한다. 알 수 없는 모델과 다른 API는 그대로 둔다. 채팅 프로세스는 세션 생성 전에 이 모듈을 실행한다.
+- 회귀 테스트를 제품 코드보다 먼저 커밋했다. SDK의 경로와 tool 결과 직렬화에 맞춰 테스트를 보정한 뒤, 수정 전 코드에서 설정 누락과 400 오류로 두 테스트가 실패하는 것을 다시 확인했다.
+- 수정 후 `node --test apps/desktop/src/u3-pi-anthropic.test.mjs apps/desktop/src/pi-config.test.mjs`는 exit 0이다. 16개 테스트가 모두 통과했다.
+- 첫 `pnpm run verify`는 Studio UI 두 건으로 exit 1이었다. Layers 항목 표시 대기 시간 초과와 임시 `pageframes` 폴더 삭제의 `ENOTEMPTY`다. 로그는 `/tmp/u3-015-verify.log`다.
+- 해당 UI 파일 두 개의 세 테스트를 변경 전 main과 수정 워크트리에서 각각 단독 실행했다. 양쪽 모두 3/3, exit 0이었다. UI 코드와 테스트는 변경하지 않았다. 로그는 `/tmp/u3-015-ui-baseline.log`, `/tmp/u3-015-ui-targeted.log`다.
+- `worktree.sh finish`에서 전체 검증을 다시 실행한다. 통과해야 병합과 push를 진행한다. 최종 검증 로그는 `/tmp/u3-015-verify-final.log`에 보존한다.
+- 실제 Anthropic 서버 호출은 실행하지 않았다. 로컬 서버와 실제 ACP 프로세스·SDK로 요청 형식을 확인했다.
+- 마감용 Jira 검색에서 이 레포에 해당하는 이슈를 찾지 못했다. 다른 제품의 이슈는 수정하지 않는다.
+- 설치된 smp 스킬에서 `/smp:wiki ingest`를 찾지 못했다. 변경 근거와 검증 결과는 이 계획에 기록한다.
 
 ## 롤백
 이 변경의 커밋을 revert한다. SDK가 생성하는 모델 설정은 다음 앱 실행 때 다시 작성한다. 사용자 대화와 영상 파일의 마이그레이션은 없다.
