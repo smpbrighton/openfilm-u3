@@ -146,7 +146,8 @@ test('resuming signed Claude history keeps reasoning and tools while old picture
   assert.equal(thinking[0].signature, 'local-signature-0');
   const results = blocks.filter((b) => b.type === 'tool_result');
   assert.equal(results.length, KEEP_PICTURE_RESULTS + 1);
-  assert.match(results[0].content.map((b) => b.text ?? '').join('\n'), /picture-0.png.*left out/);
+  const omitted = results[0].content;
+  assert.match(typeof omitted === 'string' ? omitted : omitted.map((b) => b.text ?? '').join('\n'), /picture-0.png.*left out/);
   assert.equal(results.flatMap((b) => b.content).filter((b) => b.type === 'image').length, KEEP_PICTURE_RESULTS);
   assert.ok(history.buildSessionProjection().messages.some((m) => m.role === 'toolResult' && m.content.some((b) => b.type === 'image')),
     'the saved conversation retains its original images');
