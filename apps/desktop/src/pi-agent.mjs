@@ -33,6 +33,7 @@ import { DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager, c
 import { Agent, install, setGlobalDispatcher } from 'undici';
 import { agentSessionsDir, openLog } from './chat-store.mjs';
 import { IMAGE_BUDGET, THINKING, TOO_LARGE, WAIT_MINUTES, contextUsed, effortOption, fitImages, modelOption, modelsJson, providerOf, retryNotice, stopReason, toolCall, toolContent } from './pi-config.mjs';
+import { configureAnthropicProviders } from './u3-pi-anthropic.mjs';
 
 /* stdout is the protocol's: anything else Pi or a library prints goes to stderr */
 console.log = console.info = console.warn = console.debug = (...args) => process.stderr.write(`${args.map(String).join(' ')}\n`);
@@ -54,8 +55,10 @@ const startModel = byId.has(config.model) ? config.model : models[0]?.id;
 
 mkdirSync(config.agentDir, { recursive: true });
 const modelsPath = join(config.agentDir, 'models.json');
-writeFileSync(modelsPath, JSON.stringify(modelsJson(models), null, 2));
+const modelConfig = modelsJson(models);
+writeFileSync(modelsPath, JSON.stringify(modelConfig, null, 2));
 const modelRuntime = await ModelRuntime.create({ authPath: join(config.agentDir, 'auth.json'), modelsPath });
+configureAnthropicProviders(modelRuntime, modelConfig);
 
 /** Each open session: Pi's, the turn being logged, and its model (the id) and effort as the chat names them. */
 const sessions = new Map();
