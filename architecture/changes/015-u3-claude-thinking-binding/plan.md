@@ -68,10 +68,18 @@ API key로 연결한 `claude-opus-5-5`가 이미지를 검사한 뒤에도 응�
 - 수정 후 `node --test apps/desktop/src/u3-pi-anthropic.test.mjs apps/desktop/src/pi-config.test.mjs`는 exit 0이다. 16개 테스트가 모두 통과했다.
 - 첫 `pnpm run verify`는 Studio UI 두 건으로 exit 1이었다. Layers 항목 표시 대기 시간 초과와 임시 `pageframes` 폴더 삭제의 `ENOTEMPTY`다. 로그는 `/tmp/u3-015-verify.log`다.
 - 해당 UI 파일 두 개의 세 테스트를 변경 전 main과 수정 워크트리에서 각각 단독 실행했다. 양쪽 모두 3/3, exit 0이었다. UI 코드와 테스트는 변경하지 않았다. 로그는 `/tmp/u3-015-ui-baseline.log`, `/tmp/u3-015-ui-targeted.log`다.
-- `worktree.sh finish`에서 전체 검증을 다시 실행한다. 통과해야 병합과 push를 진행한다. 최종 검증 로그는 `/tmp/u3-015-verify-final.log`에 보존한다.
+- `worktree.sh finish`의 두 번째 `pnpm run verify`가 exit 0이었다. 마지막 줄은 `✓ verify passed`다. 전체 2,088개 중 2,080개가 통과했고 조건부 8개를 건너뛰었다. 실패는 없다. 최종 로그는 `/tmp/u3-015-verify-final.log`다.
 - 실제 Anthropic 서버 호출은 실행하지 않았다. 로컬 서버와 실제 ACP 프로세스·SDK로 요청 형식을 확인했다.
 - 마감용 Jira 검색에서 이 레포에 해당하는 이슈를 찾지 못했다. 다른 제품의 이슈는 수정하지 않는다.
 - 설치된 smp 스킬에서 `/smp:wiki ingest`를 찾지 못했다. 변경 근거와 검증 결과는 이 계획에 기록한다.
+
+## 배포와 마감
+- 소스 commit `12985453110975a19e2b5e5657fbe8762afa114a`를 main에 병합하고 push했다. `v1.0.2` tag로 배포했다.
+- [desktop 실행 41619046662](https://github.com/smpbrighton/openfilm-u3/actions/runs/41619046662)의 plan, mac, windows, publish job이 모두 성공했다.
+- [u3 Studio 1.0.2](https://github.com/smpbrighton/u3-studio-releases/releases/tag/v1.0.2)를 latest로 공개했다. Mac arm64와 Windows x64 설치 파일, 업데이트 피드, 서명과 fragment를 포함한 자산 12개가 있다.
+- 공개 피드 두 개를 다시 받아 버전 `1.0.2`를 확인했다. 두 fragment의 버전과 source commit도 확인했다. 확인 파일은 `/tmp/u3-015-release-check/`다.
+- Windows의 Electron 서명 검증 테스트 12개가 모두 통과했다. 릴리스 fragment 검증도 통과했다. 로그는 `/tmp/u3-015-windows-release.log`다.
+- 변경 워크트리와 브랜치를 정리했다. 장부는 `done`이다. 사용자 대화와 영상 파일은 변경하지 않았다.
 
 ## 롤백
 이 변경의 커밋을 revert한다. SDK가 생성하는 모델 설정은 다음 앱 실행 때 다시 작성한다. 사용자 대화와 영상 파일의 마이그레이션은 없다.
